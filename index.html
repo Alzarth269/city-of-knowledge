@@ -3,12 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>City of Knowledge (LocalStorage Edition)</title>
+    <title>City of Knowledge (Firebase Working)</title>
     
-    <!-- Firebase SDK (Auth only) -->
+    <!-- Firebase SDK -->
     <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-auth-compat.js"></script>
-    <!-- We don't need firestore.js anymore -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-firestore-compat.js"></script>
 
     <!-- CSS Styles -->
     <style>
@@ -37,7 +37,7 @@
 </head>
 <body>
     <div id="login-overlay" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: #2c3e50; color: white; display: flex; flex-direction: column; justify-content: center; align-items: center; z-index: 1000; font-family: sans-serif;">
-        <h1>Chào mừng đến với City of Knowledge</h1><p>Xây dựng thành phố kiến thức của riêng bạn (LocalStorage Edition)</p><br>
+        <h1>Chào mừng đến với City of Knowledge</h1><p>Xây dựng thành phố kiến thức của riêng bạn</p><br>
         <button id="google-login-btn" style="padding: 15px 30px; font-size: 18px; cursor: pointer; background-color: #4285F4; color: white; border: none; border-radius: 5px;">Đăng nhập bằng Google</button>
     </div>
 
@@ -62,7 +62,7 @@
 
     <script>
     // ===============================================
-    // SECTION 1: FIREBASE AUTH & GLOBAL SETUP
+    // SECTION 1: FIREBASE & GLOBAL SETUP
     // ===============================================
     const firebaseConfig = {
         apiKey: "AIzaSyBNYeKt2K-R8sRR4P-ZXXb5V3ltRbCOOXY",
@@ -74,25 +74,32 @@
         measurementId: "G-LP2QYRWM0R"
     };
 
+    // Khởi tạo Firebase
     const app = firebase.initializeApp(firebaseConfig);
     const auth = firebase.auth();
+    const db = firebase.firestore();
     
     let currentUserId = null;
-    let gameState = {};
-    let listenersAttached = false;
+    let gameState = {}; // The single source of truth for game data
+    let listenersAttached = false; // Prevents attaching listeners multiple times
 
     const loginOverlay = document.getElementById('login-overlay');
     const loginButton = document.getElementById('google-login-btn');
     const gameContainer = document.getElementById('game-container');
 
+    // Đăng nhập bằng Google
     loginButton.addEventListener('click', () => {
         const provider = new firebase.auth.GoogleAuthProvider();
-        auth.signInWithPopup(provider).catch(error => console.error("Login Error:", error));
+        auth.signInWithPopup(provider).catch(error => {
+            console.error("Login Error:", error);
+            alert("Lỗi đăng nhập: " + error.message);
+        });
     });
 
+    // Theo dõi trạng thái đăng nhập
     auth.onAuthStateChanged(user => {
         if (user) {
-            if (currentUserId === user.uid) return;
+            if (currentUserId === user.uid) return; // Already logged in and initialized
             currentUserId = user.uid;
             loginOverlay.style.display = 'none';
             gameContainer.style.display = 'block';
@@ -105,23 +112,27 @@
         }
     });
 
-    // ===============================================
-    // SECTION 2: DATA HANDLING (LOCALSTORAGE)
-    // ===============================================
-    function loadGameDataAndStart(userId) {
-        const saveDataKey = `cityOfKnowledge_save_${userId}`;
-        const savedData = localStorage.getItem(saveDataKey);
-
-        if (savedData) {
-            console.log("Loading data from LocalStorage.");
-            gameState = JSON.parse(savedData);
-        } else {
-            console.log("No save data found. Creating new game.");
-            gameState = { inventory: { certificates: 0 }, city: { buildings: [] }, projects: [] };
+    async function loadGameDataAndStart(userId) {
+        const userDocRef = db.collection('users').doc(userId);
+        try {
+            const doc = await userDocRef.get();
+            if (doc.exists) {
+                const loadedState = doc.data();
+                gameState = { // Ensure data structure is sound
+                    inventory: loadedState.inventory || { certificates: 0 },
+                    city: loadedState.city || { buildings: [] },
+                    projects: loadedState.projects || []
+                };
+            } else {
+                gameState = { inventory: { certificates: 0 }, city: { buildings: [] }, projects: [] };
+                await db.collection('users').doc(userId).set(gameState);
+            }
+            // CRITICAL STEP: Now that data is ready, start the game logic
+            startGame();
+        } catch (error) { 
+            console.error("Error loading data:", error); 
+            alert("Không thể tải dữ liệu. Vui lòng thử lại.");
         }
-        
-        // Now that data is ready, start the game logic
-        startGame();
     }
 
     let saveTimeout;
@@ -129,18 +140,15 @@
         if (!currentUserId) return;
         clearTimeout(saveTimeout);
         saveTimeout = setTimeout(() => {
-            const saveDataKey = `cityOfKnowledge_save_${currentUserId}`;
-            try {
-                localStorage.setItem(saveDataKey, JSON.stringify(gameState));
-                console.log("Game progress saved to LocalStorage.");
-            } catch (error) {
-                console.error("Error saving to LocalStorage:", error);
-            }
+            const dataToSave = { ...gameState, lastUpdated: firebase.firestore.FieldValue.serverTimestamp() };
+            db.collection('users').doc(currentUserId).set(dataToSave)
+              .then(() => console.log("Game progress auto-saved."))
+              .catch(error => console.error("Error saving game:", error));
         }, 1200);
     }
-    
+
     // ===============================================
-    // SECTION 3: CORE GAME LOGIC (UNCHANGED FROM OFFLINE VERSION)
+    // SECTION 2: CORE GAME LOGIC
     // ===============================================
     function startGame() {
         const grid = document.getElementById('game-grid');
@@ -160,43 +168,427 @@
         let activeBuilding = null;
         let isDrawingRoad = false;
 
-        function initGrid() { /* ... same as before ... */ grid.innerHTML = ''; for (let y = 0; y < GRID_SIZE; y++) for (let x = 0; x < GRID_SIZE; x++) { const c = document.createElement('div'); c.className = 'grid-cell'; c.dataset.x = x; c.dataset.y = y; grid.appendChild(c); } }
-        function renderCity() { /* ... same as before ... */ document.querySelectorAll('.grid-cell').forEach(c => { c.className = 'grid-cell'; c.textContent = ''; }); if (gameState.city && gameState.city.buildings) { gameState.city.buildings.forEach(b => { if (b.position) { const c = getCell(b.position.x, b.position.y); if (c) { c.classList.add(b.type.toLowerCase().replace('_', '-')); if (b.level) { c.classList.add(`road-lvl-${b.level}`); c.textContent = `L${b.level}`; } } } }); } if (gameState.inventory) certificatesCountEl.textContent = gameState.inventory.certificates; }
+        function initGrid() {
+            grid.innerHTML = '';
+            for (let y = 0; y < GRID_SIZE; y++) {
+                for (let x = 0; x < GRID_SIZE; x++) {
+                    const cell = document.createElement('div');
+                    cell.classList.add('grid-cell');
+                    cell.dataset.x = x; 
+                    cell.dataset.y = y;
+                    grid.appendChild(cell);
+                }
+            }
+        }
+
+        function renderCity() {
+            document.querySelectorAll('.grid-cell').forEach(cell => { 
+                cell.className = 'grid-cell'; 
+                cell.textContent = ''; 
+            });
+            
+            gameState.city.buildings.forEach(building => {
+                if (building.position) {
+                    const cell = getCell(building.position.x, building.position.y);
+                    if (cell) {
+                        cell.classList.add(building.type.toLowerCase().replace('_', '-'));
+                        if (building.level) {
+                            cell.classList.add(`road-lvl-${building.level}`);
+                            cell.textContent = `L${building.level}`;
+                        }
+                    }
+                }
+            });
+            certificatesCountEl.textContent = gameState.inventory.certificates;
+        }
         
+        function getCell(x, y) {
+            return document.querySelector(`.grid-cell[data-x='${x}'][data-y='${y}']`);
+        }
+
+        function getBuildingAt(x, y) {
+            return gameState.city.buildings.find(b => b.position && b.position.x === x && b.position.y === y);
+        }
+
+        function getAdjacentBuildings(x, y) {
+            const adjacent = [];
+            const positions = [[-1, 0], [1, 0], [0, -1], [0, 1]];
+            
+            for (const pos of positions) {
+                const building = getBuildingAt(x + pos[0], y + pos[1]);
+                if (building) adjacent.push(building);
+            }
+            return adjacent;
+        }
+
+        function drawRoadOnCell(cell) {
+            const x = parseInt(cell.dataset.x);
+            const y = parseInt(cell.dataset.y);
+            if (!getBuildingAt(x, y)) {
+                cell.classList.add('road-preview');
+            }
+        }
+
+        function finalizeRoad() {
+            let changed = false;
+            document.querySelectorAll('.road-preview').forEach(cell => {
+                const x = parseInt(cell.dataset.x);
+                const y = parseInt(cell.dataset.y);
+                if (!getBuildingAt(x, y)) {
+                    const newRoadTile = {
+                        id: `r_${Date.now()}_${x}_${y}`,
+                        type: 'ROAD',
+                        level: 1,
+                        position: { x, y }
+                    };
+                    gameState.city.buildings.push(newRoadTile);
+                    changed = true;
+                }
+            });
+            resetBuildMode();
+            renderCity();
+            if (changed) saveGameProgress();
+        }
+
+        function placeBuilding(x, y, type) {
+            let name = type;
+            if (type === 'KNOWLEDGE_HOUSE') {
+                name = prompt('Đặt tên cho kiến thức này:');
+                if (!name || name.trim() === '') {
+                    resetBuildMode();
+                    return;
+                }
+            }
+            
+            const newBuilding = {
+                id: `b_${Date.now()}`,
+                type,
+                name,
+                level: 1,
+                position: { x, y }
+            };
+            gameState.city.buildings.push(newBuilding);
+            resetBuildMode();
+            renderCity();
+            saveGameProgress();
+        }
+
+        function resetBuildMode() {
+            currentBuildMode = null;
+            buildInstructions.classList.add('hidden');
+            grid.classList.remove('drawing-mode');
+        }
+
+        function openBuildingModal(building) {
+            activeBuilding = building;
+            modalBackdrop.classList.remove('hidden');
+            
+            if (building.type === 'KNOWLEDGE_HOUSE') {
+                document.getElementById('kh-modal-title').textContent = building.name;
+                document.getElementById('kh-modal-level').textContent = building.level;
+                document.getElementById('kh-upgrade-btn').disabled = gameState.inventory.certificates < 1;
+                khModal.classList.remove('hidden');
+            } else if (building.type === 'FACTORY') {
+                renderProjectsList();
+                factoryModal.classList.remove('hidden');
+            } else if (building.type === 'ROAD') {
+                updateRoadModal();
+                roadModal.classList.remove('hidden');
+            }
+        }
+
+        function updateRoadModal() {
+            const segment = findConnectedSegment(activeBuilding);
+            const connectedHouses = getHousesConnectedToSegment(segment);
+            const roadLevel = activeBuilding.level;
+            const nextLevel = roadLevel + 1;
+            const cost = connectedHouses.length;
+            const housesMeetCondition = connectedHouses.every(h => h.level >= nextLevel);
+            const canAfford = gameState.inventory.certificates >= cost;
+            const canUpgrade = housesMeetCondition && canAfford && roadLevel < 6;
+            
+            document.getElementById('road-modal-level').textContent = roadLevel;
+            document.getElementById('road-modal-next-level').textContent = nextLevel;
+            
+            const conditionsEl = document.getElementById('road-modal-conditions');
+            conditionsEl.innerHTML = `
+                <li style="color:${housesMeetCondition ? 'green' : 'red'};">Tất cả ${connectedHouses.length} nhà kết nối phải đạt cấp ${nextLevel} trở lên.</li>
+                <li style="color:${canAfford ? 'green' : 'red'};">Cần ${cost} Chứng nhận để nâng cấp.</li>
+            `;
+            
+            const upgradeBtn = document.getElementById('road-upgrade-btn');
+            upgradeBtn.disabled = !canUpgrade;
+            upgradeBtn.textContent = roadLevel >= 6 ? 'Đã đạt cấp tối đa' : 'Nâng cấp';
+        }
+
+        function findConnectedSegment(startTile) {
+            const segment = [];
+            const queue = [startTile];
+            const visited = new Set([`${startTile.position.x},${startTile.position.y}`]);
+            
+            while (queue.length > 0) {
+                const current = queue.shift();
+                segment.push(current);
+                
+                const neighbors = getAdjacentBuildings(current.position.x, current.position.y);
+                for (const neighbor of neighbors) {
+                    const posKey = `${neighbor.position.x},${neighbor.position.y}`;
+                    if (neighbor.type === 'ROAD' && neighbor.level === startTile.level && !visited.has(posKey)) {
+                        visited.add(posKey);
+                        queue.push(neighbor);
+                    }
+                }
+            }
+            return segment;
+        }
+
+        function getHousesConnectedToSegment(segment) {
+            const connectedHouses = new Map();
+            segment.forEach(tile => {
+                const neighbors = getAdjacentBuildings(tile.position.x, tile.position.y);
+                neighbors.forEach(neighbor => {
+                    if (neighbor.type === 'KNOWLEDGE_HOUSE') {
+                        connectedHouses.set(neighbor.id, neighbor);
+                    }
+                });
+            });
+            return Array.from(connectedHouses.values());
+        }
+
+        function closeModal() {
+            modalBackdrop.classList.add('hidden');
+            allModals.forEach(modal => modal.classList.add('hidden'));
+            activeBuilding = null;
+        }
+
+        function renderProjectsList() {
+            const listEl = document.getElementById('projects-list');
+            listEl.innerHTML = gameState.projects.length === 0 ? '<p>Chưa có dự án nào.</p>' : '';
+            
+            gameState.projects.forEach(project => {
+                const projectItem = document.createElement('div');
+                projectItem.className = `project-item ${project.status === 'COMPLETED' ? 'completed' : ''}`;
+                
+                const targetBuilding = gameState.city.buildings.find(b => b.id === project.targetBuildingId);
+                const targetName = targetBuilding ? targetBuilding.name : 'Đã bị phá hủy';
+                
+                let tasksHtml = '<ul>';
+                project.tasks.forEach((task, index) => {
+                    tasksHtml += `
+                        <li>
+                            <input type="checkbox" id="task_${project.id}_${index}" 
+                                   data-project-id="${project.id}" data-task-index="${index}" 
+                                   ${task.completed ? 'checked' : ''} 
+                                   ${project.status === 'COMPLETED' ? 'disabled' : ''}>
+                            <label for="task_${project.id}_${index}">${task.description}</label>
+                        </li>
+                    `;
+                });
+                tasksHtml += '</ul>';
+                
+                const allTasksCompleted = project.tasks.every(t => t.completed);
+                
+                projectItem.innerHTML = `
+                    <h3>${project.name} (Nâng cấp: ${targetName})</h3>
+                    ${tasksHtml}
+                    ${project.status === 'IN_PROGRESS' ? 
+                        `<button class="produce-btn" data-project-id="${project.id}" ${!allTasksCompleted ? 'disabled' : ''}>Sản xuất Chứng nhận</button>` : 
+                        '<p><strong>Đã hoàn thành!</strong></p>'
+                    }
+                `;
+                listEl.appendChild(projectItem);
+            });
+        }
+
+        // --- INITIALIZE EVENT LISTENERS ---
         if (!listenersAttached) {
             buildBtn.addEventListener('click', () => buildMenu.classList.toggle('hidden'));
-            buildMenu.addEventListener('click', (e) => { if (e.target.tagName === 'BUTTON') { currentBuildMode = e.target.dataset.type; buildInstructions.classList.remove('hidden'); buildInstructions.textContent = currentBuildMode === 'ROAD' ? `Kéo thả để xây đường.` : `Chọn một ô để xây.`; grid.classList.toggle('drawing-mode', currentBuildMode === 'ROAD'); buildMenu.classList.add('hidden'); } });
-            grid.addEventListener('mousedown', (e) => { if (currentBuildMode === 'ROAD' && e.target.classList.contains('grid-cell')) { isDrawingRoad = true; drawRoadOnCell(e.target); } });
-            grid.addEventListener('mousemove', (e) => { if (isDrawingRoad && e.target.classList.contains('grid-cell')) { drawRoadOnCell(e.target); } });
-            window.addEventListener('mouseup', () => { if (isDrawingRoad) { isDrawingRoad = false; finalizeRoad(); } });
-            grid.addEventListener('click', (e) => { if (currentBuildMode === 'ROAD' || !e.target.classList.contains('grid-cell')) return; const x = parseInt(e.target.dataset.x), y = parseInt(e.target.dataset.y), existingBuilding = getBuildingAt(x, y); if (currentBuildMode) { placeBuilding(x, y, currentBuildMode); } else if (existingBuilding) { openBuildingModal(existingBuilding); } });
-            modalBackdrop.addEventListener('click', (e) => { if (e.target.id === 'modal-backdrop' || e.target.classList.contains('close-btn')) { closeModal(); } });
-            document.getElementById('kh-upgrade-btn').addEventListener('click', () => { if (gameState.inventory.certificates >= 1 && activeBuilding) { gameState.inventory.certificates--; activeBuilding.level++; alert(`Đã nâng cấp "${activeBuilding.name}" lên cấp ${activeBuilding.level}!`); renderCity(); closeModal(); saveGameProgress(); } });
-            document.getElementById('kh-destroy-btn').addEventListener('click', () => { if (confirm(`Bạn có chắc muốn phá hủy "${activeBuilding.name}" không?`)) { gameState.city.buildings = gameState.city.buildings.filter(b => b.id !== activeBuilding.id); gameState.projects = gameState.projects.filter(p => p.targetBuildingId !== activeBuilding.id); renderCity(); closeModal(); saveGameProgress(); } });
-            document.getElementById('road-upgrade-btn').addEventListener('click', () => { const segment = findConnectedSegment(activeBuilding), connectedHouses = getHousesConnectedToSegment(segment), nextLevel = activeBuilding.level + 1, cost = connectedHouses.length; if (gameState.inventory.certificates < cost || !connectedHouses.every(h => h.level >= nextLevel)) { return; } gameState.inventory.certificates -= cost; segment.forEach(tile => { tile.level = nextLevel; }); alert(`Đoạn đường đã được nâng cấp lên cấp ${nextLevel}!`); renderCity(); closeModal(); saveGameProgress(); });
-            document.getElementById('create-project-btn').addEventListener('click', () => { factoryModal.classList.add('hidden'); const targetSelect = document.getElementById('project-target-building'); targetSelect.innerHTML = ''; const knowledgeHouses = gameState.city.buildings.filter(b => b.type === 'KNOWLEDGE_HOUSE'); if (knowledgeHouses.length === 0) { alert('Bạn phải xây một Nhà Kiến thức trước khi tạo dự án!'); factoryModal.classList.remove('hidden'); return; } knowledgeHouses.forEach(house => { const option = document.createElement('option'); option.value = house.id; option.textContent = `${house.name} (Cấp ${house.level})`; targetSelect.appendChild(option); }); document.getElementById('project-form').reset(); document.getElementById('tasks-container').innerHTML = '<input type="text" class="task-input" placeholder="Ví dụ: Đọc 5 bài viết" required>'; createProjectModal.classList.remove('hidden'); });
-            document.getElementById('add-task-btn').addEventListener('click', () => { const taskInput = document.createElement('input'); taskInput.type = 'text'; taskInput.classList.add('task-input'); taskInput.placeholder = "Công việc tiếp theo"; taskInput.required = true; document.getElementById('tasks-container').appendChild(taskInput); });
-            document.getElementById('project-form').addEventListener('submit', (e) => { e.preventDefault(); const tasks = Array.from(document.querySelectorAll('.task-input')).map(input => ({ description: input.value, completed: false })); const newProject = { id: `p_${Date.now()}`, name: document.getElementById('project-name').value, status: 'IN_PROGRESS', targetBuildingId: document.getElementById('project-target-building').value, tasks }; gameState.projects.push(newProject); createProjectModal.classList.add('hidden'); factoryModal.classList.remove('hidden'); renderProjectsList(); saveGameProgress(); });
-            document.getElementById('projects-list').addEventListener('click', (e) => { let changed = false; if (e.target.type === 'checkbox') { const { projectId, taskIndex } = e.target.dataset; const project = gameState.projects.find(p => p.id === projectId); if (project) { project.tasks[taskIndex].completed = e.target.checked; renderProjectsList(); changed = true; } } if (e.target.classList.contains('produce-btn')) { const { projectId } = e.target.dataset; const project = gameState.projects.find(p => p.id === projectId); if (project && project.tasks.every(t => t.completed)) { project.status = 'COMPLETED'; gameState.inventory.certificates++; alert(`Sản xuất thành công 1 Chứng nhận từ dự án "${project.name}"!`); renderProjectsList(); renderCity(); changed = true; } } if (changed) saveGameProgress(); });
+            
+            buildMenu.addEventListener('click', (e) => {
+                if (e.target.tagName === 'BUTTON') {
+                    currentBuildMode = e.target.dataset.type;
+                    buildInstructions.classList.remove('hidden');
+                    buildInstructions.textContent = currentBuildMode === 'ROAD' ? 
+                        `Chế độ xây đường: Nhấp và kéo trên bản đồ.` : 
+                        `Chế độ xây ${currentBuildMode}: Chọn một ô.`;
+                    grid.classList.toggle('drawing-mode', currentBuildMode === 'ROAD');
+                    buildMenu.classList.add('hidden');
+                }
+            });
+            
+            grid.addEventListener('mousedown', (e) => {
+                if (currentBuildMode === 'ROAD' && e.target.classList.contains('grid-cell')) {
+                    isDrawingRoad = true;
+                    drawRoadOnCell(e.target);
+                }
+            });
+            
+            grid.addEventListener('mousemove', (e) => {
+                if (isDrawingRoad && e.target.classList.contains('grid-cell')) {
+                    drawRoadOnCell(e.target);
+                }
+            });
+            
+            window.addEventListener('mouseup', () => {
+                if (isDrawingRoad) {
+                    isDrawingRoad = false;
+                    finalizeRoad();
+                }
+            });
+            
+            grid.addEventListener('click', (e) => {
+                if (currentBuildMode === 'ROAD' || !e.target.classList.contains('grid-cell')) return;
+                
+                const x = parseInt(e.target.dataset.x);
+                const y = parseInt(e.target.dataset.y);
+                const existingBuilding = getBuildingAt(x, y);
+                
+                if (currentBuildMode) {
+                    placeBuilding(x, y, currentBuildMode);
+                } else if (existingBuilding) {
+                    openBuildingModal(existingBuilding);
+                }
+            });
+            
+            modalBackdrop.addEventListener('click', (e) => {
+                if (e.target.id === 'modal-backdrop' || e.target.classList.contains('close-btn')) {
+                    closeModal();
+                }
+            });
+            
+            document.getElementById('kh-upgrade-btn').addEventListener('click', () => {
+                if (gameState.inventory.certificates >= 1 && activeBuilding) {
+                    gameState.inventory.certificates--;
+                    activeBuilding.level++;
+                    alert(`Đã nâng cấp "${activeBuilding.name}" lên cấp ${activeBuilding.level}!`);
+                    renderCity();
+                    closeModal();
+                    saveGameProgress();
+                }
+            });
+            
+            document.getElementById('kh-destroy-btn').addEventListener('click', () => {
+                if (confirm(`Bạn có chắc muốn phá hủy "${activeBuilding.name}" không?`)) {
+                    gameState.city.buildings = gameState.city.buildings.filter(b => b.id !== activeBuilding.id);
+                    gameState.projects = gameState.projects.filter(p => p.targetBuildingId !== activeBuilding.id);
+                    renderCity();
+                    closeModal();
+                    saveGameProgress();
+                }
+            });
+            
+            document.getElementById('road-upgrade-btn').addEventListener('click', () => {
+                const segment = findConnectedSegment(activeBuilding);
+                const connectedHouses = getHousesConnectedToSegment(segment);
+                const nextLevel = activeBuilding.level + 1;
+                const cost = connectedHouses.length;
+                
+                if (gameState.inventory.certificates < cost || !connectedHouses.every(h => h.level >= nextLevel)) {
+                    return;
+                }
+                
+                gameState.inventory.certificates -= cost;
+                segment.forEach(tile => {
+                    tile.level = nextLevel;
+                });
+                
+                alert(`Đoạn đường đã được nâng cấp lên cấp ${nextLevel}!`);
+                renderCity();
+                closeModal();
+                saveGameProgress();
+            });
+            
+            document.getElementById('create-project-btn').addEventListener('click', () => {
+                factoryModal.classList.add('hidden');
+                const targetSelect = document.getElementById('project-target-building');
+                targetSelect.innerHTML = '';
+                
+                const knowledgeHouses = gameState.city.buildings.filter(b => b.type === 'KNOWLEDGE_HOUSE');
+                if (knowledgeHouses.length === 0) {
+                    alert('Bạn phải xây một Nhà Kiến thức trước khi tạo dự án!');
+                    factoryModal.classList.remove('hidden');
+                    return;
+                }
+                
+                knowledgeHouses.forEach(house => {
+                    const option = document.createElement('option');
+                    option.value = house.id;
+                    option.textContent = `${house.name} (Cấp ${house.level})`;
+                    targetSelect.appendChild(option);
+                });
+                
+                document.getElementById('project-form').reset();
+                document.getElementById('tasks-container').innerHTML = '<input type="text" class="task-input" placeholder="Ví dụ: Đọc 5 bài viết" required>';
+                createProjectModal.classList.remove('hidden');
+            });
+            
+            document.getElementById('add-task-btn').addEventListener('click', () => {
+                const taskInput = document.createElement('input');
+                taskInput.type = 'text';
+                taskInput.classList.add('task-input');
+                taskInput.placeholder = "Công việc tiếp theo";
+                taskInput.required = true;
+                document.getElementById('tasks-container').appendChild(taskInput);
+            });
+            
+            document.getElementById('project-form').addEventListener('submit', (e) => {
+                e.preventDefault();
+                const tasks = Array.from(document.querySelectorAll('.task-input')).map(input => ({
+                    description: input.value,
+                    completed: false
+                }));
+                
+                const newProject = {
+                    id: `p_${Date.now()}`,
+                    name: document.getElementById('project-name').value,
+                    status: 'IN_PROGRESS',
+                    targetBuildingId: document.getElementById('project-target-building').value,
+                    tasks
+                };
+                
+                gameState.projects.push(newProject);
+                createProjectModal.classList.add('hidden');
+                factoryModal.classList.remove('hidden');
+                renderProjectsList();
+                saveGameProgress();
+            });
+            
+            document.getElementById('projects-list').addEventListener('click', (e) => {
+                let changed = false;
+                
+                if (e.target.type === 'checkbox') {
+                    const { projectId, taskIndex } = e.target.dataset;
+                    const project = gameState.projects.find(p => p.id === projectId);
+                    if (project) {
+                        project.tasks[taskIndex].completed = e.target.checked;
+                        renderProjectsList();
+                        changed = true;
+                    }
+                }
+                
+                if (e.target.classList.contains('produce-btn')) {
+                    const { projectId } = e.target.dataset;
+                    const project = gameState.projects.find(p => p.id === projectId);
+                    if (project && project.tasks.every(t => t.completed)) {
+                        project.status = 'COMPLETED';
+                        gameState.inventory.certificates++;
+                        alert(`Sản xuất thành công 1 Chứng nhận từ dự án "${project.name}"!`);
+                        renderProjectsList();
+                        renderCity();
+                        changed = true;
+                    }
+                }
+                
+                if (changed) saveGameProgress();
+            });
+            
             listenersAttached = true;
         }
-        function drawRoadOnCell(cell) { const x = parseInt(cell.dataset.x), y = parseInt(cell.dataset.y); if (!getBuildingAt(x, y)) { cell.classList.add('road-preview'); } }
-        function finalizeRoad() { let changed = false; document.querySelectorAll('.road-preview').forEach(cell => { const x = parseInt(cell.dataset.x), y = parseInt(cell.dataset.y); if (!getBuildingAt(x, y)) { const newRoadTile = { id: `r_${Date.now()}_${x}_${y}`, type: 'ROAD', level: 1, position: { x, y } }; gameState.city.buildings.push(newRoadTile); changed = true; } }); resetBuildMode(); renderCity(); if (changed) saveGameProgress(); }
-        function placeBuilding(x, y, type) { if(getBuildingAt(x, y)) { alert('Vị trí đã có công trình!'); return; } if(type !== 'ROAD' && !getAdjacentBuildings(x, y).some(b => b.type === 'ROAD')) { alert('Phải xây cạnh đường!'); return; } let name = type; if (type === 'KNOWLEDGE_HOUSE') { name = prompt('Đặt tên cho kiến thức này:'); if (!name || name.trim() === '') { resetBuildMode(); return; } } const newBuilding = { id: `b_${Date.now()}`, type, name, level: 1, position: { x, y } }; gameState.city.buildings.push(newBuilding); resetBuildMode(); renderCity(); saveGameProgress(); }
-        function resetBuildMode() { currentBuildMode = null; buildInstructions.classList.add('hidden'); grid.classList.remove('drawing-mode'); }
-        function openBuildingModal(building) { activeBuilding = building; modalBackdrop.classList.remove('hidden'); if (building.type === 'KNOWLEDGE_HOUSE') { document.getElementById('kh-modal-title').textContent = building.name; document.getElementById('kh-modal-level').textContent = building.level; document.getElementById('kh-upgrade-btn').disabled = gameState.inventory.certificates < 1; khModal.classList.remove('hidden'); } else if (building.type === 'FACTORY') { renderProjectsList(); factoryModal.classList.remove('hidden'); } else if (building.type === 'ROAD') { updateRoadModal(); roadModal.classList.remove('hidden'); } }
-        function updateRoadModal() { const segment = findConnectedSegment(activeBuilding), connectedHouses = getHousesConnectedToSegment(segment), roadLevel = activeBuilding.level, nextLevel = roadLevel + 1, cost = connectedHouses.length; const housesMeetCondition = connectedHouses.every(h => h.level >= nextLevel); const canAfford = gameState.inventory.certificates >= cost; const canUpgrade = housesMeetCondition && canAfford && roadLevel < 6; document.getElementById('road-modal-level').textContent = roadLevel; document.getElementById('road-modal-next-level').textContent = nextLevel; const conditionsEl = document.getElementById('road-modal-conditions'); conditionsEl.innerHTML = `<li style="color:${housesMeetCondition ? 'green' : 'red'};">Tất cả ${connectedHouses.length} nhà kết nối phải đạt cấp ${nextLevel} trở lên.</li><li style="color:${canAfford ? 'green' : 'red'};">Cần ${cost} Chứng nhận để nâng cấp.</li>`; const upgradeBtn = document.getElementById('road-upgrade-btn'); upgradeBtn.disabled = !canUpgrade; upgradeBtn.textContent = roadLevel >= 6 ? 'Đã đạt cấp tối đa' : 'Nâng cấp'; }
-        function findConnectedSegment(startTile) { const segment = [], queue = [startTile], visited = new Set([`${startTile.position.x},${startTile.position.y}`]); while (queue.length > 0) { const current = queue.shift(); segment.push(current); const neighbors = getAdjacentBuildings(current.position.x, current.position.y); for (const neighbor of neighbors) { const posKey = `${neighbor.position.x},${neighbor.position.y}`; if (neighbor.type === 'ROAD' && neighbor.level === startTile.level && !visited.has(posKey)) { visited.add(posKey); queue.push(neighbor); } } } return segment; }
-        function getHousesConnectedToSegment(segment) { const connectedHouses = new Map(); segment.forEach(tile => { const neighbors = getAdjacentBuildings(tile.position.x, tile.position.y); neighbors.forEach(neighbor => { if (neighbor.type === 'KNOWLEDGE_HOUSE') { connectedHouses.set(neighbor.id, neighbor); } }); }); return Array.from(connectedHouses.values()); }
-        function closeModal() { modalBackdrop.classList.add('hidden'); allModals.forEach(modal => modal.classList.add('hidden')); activeBuilding = null; }
-        function renderProjectsList() { const listEl = document.getElementById('projects-list'); listEl.innerHTML = gameState.projects.length === 0 ? '<p>Chưa có dự án nào.</p>' : ''; gameState.projects.forEach(project => { const projectItem = document.createElement('div'); projectItem.className = `project-item ${project.status === 'COMPLETED' ? 'completed' : ''}`; const targetBuilding = gameState.city.buildings.find(b => b.id === project.targetBuildingId); const targetName = targetBuilding ? targetBuilding.name : 'Đã bị phá hủy'; let tasksHtml = '<ul>'; project.tasks.forEach((task, index) => { tasksHtml += `<li><input type="checkbox" id="task_${project.id}_${index}" data-project-id="${project.id}" data-task-index="${index}" ${task.completed ? 'checked' : ''} ${project.status === 'COMPLETED' ? 'disabled' : ''}><label for="task_${project.id}_${index}">${task.description}</label></li>`; }); tasksHtml += '</ul>'; const allTasksCompleted = project.tasks.every(t => t.completed); projectItem.innerHTML = `<h3>${project.name} (Nâng cấp: ${targetName})</h3> ${tasksHtml} ${project.status === 'IN_PROGRESS' ? `<button class="produce-btn" data-project-id="${project.id}" ${!allTasksCompleted ? 'disabled' : ''}>Sản xuất Chứng nhận</button>` : '<p><strong>Đã hoàn thành!</strong></p>'}`; listEl.appendChild(projectItem); }); }
-        function getCell(x, y) { return document.querySelector(`.grid-cell[data-x='${x}'][data-y='${y}']`); }
-        function getBuildingAt(x, y) { return gameState.city.buildings.find(b => b.position && b.position.x === x && b.position.y === y); }
-        function getAdjacentBuildings(x, y) { const adjacent = [], positions = [[-1, 0], [1, 0], [0, -1], [0, 1]]; for (const pos of positions) { const building = getBuildingAt(x + pos[0], y + pos[1]); if (building) adjacent.push(building); } return adjacent; }
-        initGrid(); renderCity();
+
+        // --- INITIALIZE THE GAME ---
+        initGrid();
+        renderCity();
     }
-    
-    });
     </script>
 </body>
 </html>
