@@ -82,7 +82,7 @@
         
         let currentUserId = null;
         let gameState = {};
-        let listenersAttached = false; // Flag to ensure listeners are only attached once
+        let listenersAttached = false;
 
         const loginOverlay = document.getElementById('login-overlay');
         const loginButton = document.getElementById('google-login-btn');
@@ -103,14 +103,13 @@
                 currentUserId = null;
                 loginOverlay.style.display = 'flex';
                 gameContainer.style.display = 'none';
-                listenersAttached = false; // Reset flag on logout
+                listenersAttached = false;
             }
         });
 
         // ===============================================
         // SECTION 2: GAME & DOM ELEMENT SETUP
         // ===============================================
-        // --- ALL DOM elements are declared here in the global scope ---
         const grid = document.getElementById('game-grid');
         const certificatesCountEl = document.getElementById('certificates-count');
         const buildBtn = document.getElementById('build-btn');
@@ -127,7 +126,9 @@
         async function loadGameData(userId) {
             const userDocRef = db.collection('users').doc(userId);
             try {
-                const doc = await userDoc_docRef.get();
+                // THIS LINE IS NOW CORRECTED
+                const doc = await userDocRef.get(); 
+
                 if (doc.exists) {
                     const loadedState = doc.data();
                     gameState = {
@@ -140,7 +141,6 @@
                     await db.collection('users').doc(userId).set(gameState);
                 }
                 
-                // --- CRITICAL STEP: Initialize game after data is ready ---
                 initGrid();
                 if (!listenersAttached) {
                     attachEventListeners();
@@ -148,7 +148,10 @@
                 }
                 renderCity();
 
-            } catch (error) { console.error("Error loading data:", error); }
+            } catch (error) { 
+                console.error("Error loading data:", error); 
+                alert("Không thể tải dữ liệu. Vui lòng thử lại.");
+            }
         }
 
         let saveTimeout;
@@ -198,6 +201,16 @@
         }
 
         function placeBuilding(x, y, type) {
+            if (currentBuildMode) {
+                if (getBuildingAt(x, y)) { alert('Vị trí đã có công trình!'); return; }
+                if (!getAdjacentBuildings(x, y).some(b => b.type === 'ROAD')) { alert('Phải xây dựng công trình cạnh đường đi!'); return; }
+                if (currentBuildMode === 'FACTORY') {
+                    const khCount = gameState.city.buildings.filter(b => b.type === 'KNOWLEDGE_HOUSE').length;
+                    const fCount = gameState.city.buildings.filter(b => b.type === 'FACTORY').length;
+                    const required = (fCount + 1) * 5;
+                    if (khCount < required) { alert(`Cần ít nhất ${required} Nhà Kiến thức để xây thêm Nhà máy!`); return; }
+                }
+            }
             let name = type;
             if (type === 'KNOWLEDGE_HOUSE') {
                 name = prompt('Đặt tên cho kiến thức này:');
@@ -242,7 +255,6 @@
             grid.classList.remove('drawing-mode');
         }
 
-        // ... Other helper functions (getBuildingAt, getCell, etc.)
         function getCell(x, y) { return document.querySelector(`.grid-cell[data-x='${x}'][data-y='${y}']`); }
         function getBuildingAt(x, y) { return gameState.city.buildings.find(b => b.position && b.position.x === x && b.position.y === y); }
         function getAdjacentBuildings(x, y) { const adj = []; const pos = [[-1, 0], [1, 0], [0, -1], [0, 1]]; for (const p of pos) { const b = getBuildingAt(x + p[0], y + p[1]); if (b) adj.push(b); } return adj; }
@@ -271,7 +283,7 @@
                 if (e.target.tagName !== 'BUTTON') return;
                 currentBuildMode = e.target.dataset.type;
                 buildInstructions.classList.remove('hidden');
-                buildInstructions.textContent = `Chế độ xây: ${currentBuildMode}. Chọn một ô...`;
+                buildInstructions.textContent = currentBuildMode === 'ROAD' ? `Kéo thả để xây đường.` : `Chọn một ô để xây.`;
                 grid.classList.toggle('drawing-mode', currentBuildMode === 'ROAD');
                 buildMenu.classList.add('hidden');
             });
