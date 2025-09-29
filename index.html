@@ -21,7 +21,21 @@
             background-color: #f0f2f5; margin: 0; padding: 20px; color: #333;
         }
         
-        .game-wrapper { display: flex; flex-direction: column; align-items: center; gap: 15px; }
+        /* NEW: Main layout for side-by-side view */
+        .app-layout {
+            display: flex;
+            flex-direction: row;
+            align-items: flex-start;
+            gap: 20px;
+        }
+        .game-column {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+        .controls-column {
+            flex-shrink: 0;
+        }
 
         #info-panel {
             width: calc(var(--grid-size) * var(--cell-size));
@@ -58,11 +72,9 @@
         .grid-cell.buildable:hover { background-color: rgba(255, 255, 255, 0.4); }
         .grid-cell.road-preview { background-color: rgba(121, 85, 72, 0.5); }
 
-        /* Terrain */
         .mountain { background-color: var(--mountain-color); } .sand { background-color: var(--sand-color); }
         .sea { background-color: var(--sea-color); } .grass { background-color: var(--grass-color); }
 
-        /* Buildings */
         .knowledge-house { background-color: var(--house-color); } .factory { background-color: var(--factory-color); }
         .park { background-color: var(--park-color); } .road { color: #f0f0f0; }
         .road.road-lvl-1 { background-color: var(--road-lvl1-color); } .road.road-lvl-2 { background-color: var(--road-lvl2-color); }
@@ -71,13 +83,16 @@
         
         .invalid-building { opacity: 0.6; border: 2px dashed #D32F2F !important; animation: blink 1.5s infinite; }
         @keyframes blink { 50% { border-color: transparent; } }
-        .moving-building-ghost { opacity: 0.7; background-color: #fff !important; border: 2px dashed #333; }
 
+        /* MODIFIED: Controls Panel styling */
         #main-controls {
-            width: calc(var(--grid-size) * var(--cell-size)); padding: 10px; box-sizing: border-box; background: #fff;
-            border-radius: 8px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); display: flex; justify-content: space-between; gap: 20px;
+            width: 300px; /* Fixed width for the side panel */
+            padding: 10px; box-sizing: border-box; background: #fff;
+            border-radius: 8px; box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+            display: flex; flex-direction: column; /* Stack control groups vertically */
+            gap: 15px;
         }
-        .control-group { flex: 1; display: flex; gap: 10px; flex-direction: column; }
+        .control-group { display: flex; gap: 10px; flex-direction: column; }
         .control-group h3 { margin: 0 0 5px 0; font-size: 1.1em; border-bottom: 1px solid #eee; padding-bottom: 5px; }
         .control-group .button-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 5px; }
         #build-instructions { font-style: italic; color: #555; margin: 0; min-height: 20px; }
@@ -120,44 +135,51 @@
 </head>
 <body>
 
-    <div class="game-wrapper">
-        <div id="info-panel">
-            <h2><input type="text" id="city-name-input"></h2>
-            <p>Dân số: <span id="population-display">0</span></p>
+    <!-- NEW: Main layout wrapper -->
+    <div class="app-layout">
+        <!-- Column for game area -->
+        <div class="game-column">
+            <div id="info-panel">
+                <h2><input type="text" id="city-name-input"></h2>
+                <p>Dân số: <span id="population-display">0</span></p>
+            </div>
+
+            <div id="game-container">
+                <div id="game-grid"></div>
+            </div>
         </div>
 
-        <div id="game-container">
-            <div id="game-grid"></div>
-        </div>
-        
-        <div id="main-controls">
-            <div class="control-group">
-                <h3>Xây dựng & Quy hoạch</h3>
-                <div class="button-grid">
-                    <button data-type="KNOWLEDGE_HOUSE">Nhà Kiến thức</button>
-                    <button data-type="FACTORY" id="build-factory-btn" disabled>Nhà máy</button>
-                    <button data-type="PARK" id="build-park-btn" disabled>Công viên</button>
-                    <button data-type="ROAD">Đường đi</button>
-                    <button data-tool="MOVE">Di chuyển</button>
-                    <button data-tool="DESTROY_ROAD">Phá đường</button>
+        <!-- Column for controls -->
+        <div class="controls-column">
+            <div id="main-controls">
+                <div class="control-group">
+                    <h3>Xây dựng & Quy hoạch</h3>
+                    <div class="button-grid">
+                        <button data-type="KNOWLEDGE_HOUSE">Nhà Kiến thức</button>
+                        <button data-type="FACTORY" id="build-factory-btn" disabled>Nhà máy</button>
+                        <button data-type="PARK" id="build-park-btn" disabled>Công viên</button>
+                        <button data-type="ROAD">Đường đi</button>
+                        <button data-tool="MOVE">Di chuyển</button>
+                        <button data-tool="DESTROY_ROAD">Phá đường</button>
+                    </div>
                 </div>
-            </div>
-            <div class="control-group">
-                <h3>Quản lý</h3>
-                <div class="button-grid">
-                    <button id="save-game-btn">Lưu Game</button>
-                    <button id="load-game-btn">Tải Game</button>
-                    <input type="file" id="load-game-input" accept=".json" class="hidden">
+                <div class="control-group">
+                    <h3>Quản lý</h3>
+                    <div class="button-grid">
+                        <button id="save-game-btn">Lưu Game</button>
+                        <button id="load-game-btn">Tải Game</button>
+                        <input type="file" id="load-game-input" accept=".json" class="hidden">
+                    </div>
                 </div>
-            </div>
-             <div class="control-group">
-                <h3>Thông tin</h3>
-                 <p id="build-instructions"></p>
+                 <div class="control-group">
+                    <h3>Thông tin</h3>
+                     <p id="build-instructions"></p>
+                </div>
             </div>
         </div>
     </div>
 
-    <!-- Modals -->
+    <!-- Modals (unchanged structure) -->
     <div id="modal-backdrop" class="hidden">
         <div id="knowledge-house-modal" class="modal hidden">
             <button class="close-btn">&times;</button> <h2 id="kh-modal-title"></h2>
@@ -172,7 +194,7 @@
                 <label for="kh-upgrade-amount">Số lượng chứng nhận:</label>
                 <input type="number" id="kh-upgrade-amount" min="1" value="1">
             </div>
-            <p>Tối thiểu: <span id="kh-upgrade-min">1</span>. Mỗi +1 thêm = +1 dân.</p>
+            <p>Tối thiểu: <span id="kh-upgrade-min">1</span>. Mỗi +1 thêm = +1 dân thưởng.</p>
             <button id="kh-upgrade-confirm-btn">Xác nhận Nâng cấp</button>
         </div>
 
@@ -230,7 +252,9 @@
         const POPULATION_UNLOCKS = { FACTORY: 50, PARK: 100 };
         const POP_BY_LEVEL = { 1: 10, 2: 25, 3: 50, 4: 100, 5: 200, 6: 400 };
         const PARK_AOE_BONUS = 4;
-        const MOVE_COST = 1;
+        const MOVE_COST = 0; // MODIFIED: Set move cost to 0
+        
+        let currentTool = null, activeBuilding = null, movingBuilding = null, isDrawing = false;
 
         const grid = document.getElementById('game-grid');
         const infoPanel = { nameInput: document.getElementById('city-name-input'), population: document.getElementById('population-display') };
@@ -241,23 +265,18 @@
         };
         const modalBackdrop = document.getElementById('modal-backdrop');
         const allModals = document.querySelectorAll('.modal');
-        const modals = { // Direct access to modal elements
-            kh: document.getElementById('knowledge-house-modal'),
-            khUpgrade: document.getElementById('kh-upgrade-custom-modal'),
-            factory: document.getElementById('factory-modal'),
-            park: document.getElementById('park-modal'),
-            project: document.getElementById('create-project-modal'),
-            road: document.getElementById('road-modal')
+        const modals = {
+            kh: document.getElementById('knowledge-house-modal'), khUpgrade: document.getElementById('kh-upgrade-custom-modal'),
+            factory: document.getElementById('factory-modal'), park: document.getElementById('park-modal'),
+            project: document.getElementById('create-project-modal'), road: document.getElementById('road-modal')
         };
-        
-        let currentTool = null; let activeBuilding = null; let movingBuilding = null; let isDrawing = false;
         
         function initGrid() {
             grid.innerHTML = '';
             for (let y = 0; y < GRID_SIZE; y++) {
                 for (let x = 0; x < GRID_SIZE; x++) {
                     const cell = document.createElement('div');
-                    cell.classList.add('grid-cell');
+                    cell.className = 'grid-cell';
                     cell.dataset.x = x; cell.dataset.y = y;
                     let terrainClass = 'grass';
                     if (TERRAIN.MOUNTAIN.includes(x)) terrainClass = 'mountain';
@@ -272,17 +291,15 @@
 
         function render() {
             grid.querySelectorAll('.knowledge-house, .factory, .park, .road, .invalid-building').forEach(el => {
-                const classList = Array.from(el.classList);
-                const terrain = classList.find(c => ['grass', 'mountain', 'sand', 'sea'].includes(c));
-                el.className = `grid-cell ${!terrain ? 'buildable' : ''} ${terrain || ''}`.trim();
+                const terrain = ['grass', 'mountain', 'sand', 'sea'].find(c => el.classList.contains(c));
+                el.className = `grid-cell ${terrain ? '' : 'buildable'} ${terrain || ''}`.trim();
                 el.textContent = '';
             });
             gameState.city.buildings.forEach(b => {
                 if (!b.position) return;
                 const cell = getCell(b.position.x, b.position.y);
                 if (!cell) return;
-                const typeClass = b.type.toLowerCase().replace('_', '-');
-                cell.classList.add(typeClass);
+                cell.classList.add(b.type.toLowerCase().replace('_', '-'));
                 if (b.level) {
                     cell.classList.add(`road-lvl-${b.level}`);
                     cell.textContent = `L${b.level}`;
@@ -296,7 +313,7 @@
             infoPanel.nameInput.value = gameState.cityName;
             const population = calculateTotalPopulation();
             const nextUnlock = population < POPULATION_UNLOCKS.FACTORY ? POPULATION_UNLOCKS.FACTORY : (population < POPULATION_UNLOCKS.PARK ? POPULATION_UNLOCKS.PARK : 'Max');
-            infoPanel.population.textContent = `${population} (Mở khóa tiếp: ${nextUnlock})`;
+            infoPanel.population.textContent = `${population} (Mở khóa: ${nextUnlock} dân)`;
         }
 
         function updateBuildMenu() {
@@ -312,33 +329,30 @@
                 if (b.type === 'KNOWLEDGE_HOUSE') {
                     totalPop += POP_BY_LEVEL[b.level] || 0;
                     totalPop += b.bonusPop || 0;
-                    const isNearPark = parks.some(p => Math.abs(p.position.x - b.position.x) <= 1 && Math.abs(p.position.y - b.position.y) <= 1 && p !== b);
-                    if (isNearPark) totalPop += PARK_AOE_BONUS;
+                    if (parks.some(p => Math.abs(p.position.x - b.position.x) <= 1 && Math.abs(p.position.y - b.position.y) <= 1 && p.id !== b.id)) {
+                        totalPop += PARK_AOE_BONUS;
+                    }
                 }
             });
             return totalPop;
         }
 
         function isPositionValid(x, y) {
-            if (x === undefined || y === undefined) return false;
             return !(TERRAIN.MOUNTAIN.includes(x) || TERRAIN.SAND.includes(x) || TERRAIN.SEA.includes(x));
         }
 
         function setTool(type, detail = null) {
-            currentTool = { type, detail };
-            movingBuilding = null;
+            currentTool = { type, detail }; movingBuilding = null;
             grid.className = 'game-grid';
-            controls.instructions.classList.remove('hidden');
             let text = '';
             if (type === 'BUILD') {
                 text = detail === 'ROAD' ? 'Kéo thả để vẽ đường.' : `Chọn vị trí để xây ${detail.replace('_', ' ')}.`;
                 grid.classList.add('build-mode');
             } else if (type === 'MOVE') {
-                text = 'Chọn tòa nhà để di chuyển (phí: 1 cert).';
+                text = 'Chọn tòa nhà để di chuyển.'; // MODIFIED: Removed cost text
                 grid.classList.add('move-mode');
             } else if (type === 'DESTROY_ROAD') {
-                text = 'Nhấp hoặc kéo trên đường để phá.';
-                grid.classList.add('destroy-mode');
+                text = 'Nhấp hoặc kéo trên đường để phá.'; grid.classList.add('destroy-mode');
             }
             controls.instructions.textContent = text;
         }
@@ -348,41 +362,14 @@
             grid.className = 'game-grid';
             controls.instructions.textContent = '';
         }
-        
-        controls.main.addEventListener('click', e => {
-            if (e.target.tagName !== 'BUTTON') return;
-            const type = e.target.dataset.type;
-            const tool = e.target.dataset.tool;
-            if (e.target.disabled) return;
-            if (type) setTool('BUILD', type);
-            if (tool) setTool(tool);
-        });
 
-        grid.addEventListener('mousedown', e => {
-            if (!currentTool || !e.target.classList.contains('grid-cell')) return;
-            isDrawing = true; handleGridInteraction(e.target, 'start');
-        });
-        grid.addEventListener('mousemove', e => {
-            if (!isDrawing || !e.target.classList.contains('grid-cell')) return;
-            handleGridInteraction(e.target, 'drag');
-        });
-        window.addEventListener('mouseup', () => {
-            if (!isDrawing) return;
-            isDrawing = false;
-            if (currentTool?.type === 'BUILD' && currentTool?.detail === 'ROAD') {
-                document.querySelectorAll('.road-preview').forEach(c => {
-                    const nx = parseInt(c.dataset.x), ny = parseInt(c.dataset.y);
-                    if (!getBuildingAt(nx, ny)) placeBuilding(nx, ny, 'ROAD');
-                });
-                resetTool(); render();
-            } else if (currentTool?.type === 'DESTROY_ROAD') { resetTool(); render(); }
-        });
-        grid.addEventListener('click', e => {
-            if (currentTool || !e.target.classList.contains('grid-cell')) return;
-            const x = parseInt(e.target.dataset.x), y = parseInt(e.target.dataset.y);
-            const building = getBuildingAt(x, y);
-            if (building) openBuildingModal(building);
-        });
+        function placeBuilding(x, y, type) {
+            let name = type;
+            if (type === 'KNOWLEDGE_HOUSE') name = prompt('Đặt tên cho kiến thức:');
+            else if (type === 'PARK') name = 'Công viên';
+            if (!name && type === 'KNOWLEDGE_HOUSE') return;
+            gameState.city.buildings.push({ id: `b_${Date.now()}`, type, name, level: 1, position: { x, y }, bonusPop: 0 });
+        }
 
         function handleGridInteraction(cell, eventType) {
             const x = parseInt(cell.dataset.x), y = parseInt(cell.dataset.y);
@@ -390,9 +377,8 @@
             const { type: toolType, detail: toolDetail } = currentTool;
 
             if (toolType === 'BUILD') {
-                if (toolDetail === 'ROAD') {
-                    if (isPositionValid(x, y) && !getBuildingAt(x, y)) cell.classList.add('road-preview');
-                } else if (eventType === 'start') {
+                if (toolDetail === 'ROAD') { if (isPositionValid(x, y) && !getBuildingAt(x, y)) cell.classList.add('road-preview'); }
+                else if (eventType === 'start') {
                     if (!isPositionValid(x, y) || getBuildingAt(x, y)) { alert('Vị trí không hợp lệ!'); return; }
                     if (toolDetail !== 'ROAD' && !getAdjacentBuildings(x, y).some(b => b.type === 'ROAD')) { alert('Phải xây cạnh đường!'); return; }
                     placeBuilding(x, y, toolDetail); resetTool(); render();
@@ -400,12 +386,7 @@
             } else if (toolType === 'DESTROY_ROAD') {
                 const b = getBuildingAt(x, y);
                 if (b && b.type === 'ROAD') {
-                    const adj = getAdjacentBuildings(x,y);
-                    const connectedBuildings = adj.filter(building => building.type !== 'ROAD');
-                    if(connectedBuildings.length > 0) {
-                        alert('Không thể xóa đường đang kết nối với công trình!');
-                        return;
-                    }
+                    if (getAdjacentBuildings(x, y).some(adj => adj.type !== 'ROAD')) { if (eventType === 'start') alert('Không thể xóa đường đang kết nối với công trình!'); return; }
                     gameState.city.buildings = gameState.city.buildings.filter(ob => ob.id !== b.id);
                     render();
                 }
@@ -415,59 +396,19 @@
                         if (getBuildingAt(x, y)) { alert('Vị trí đã có công trình!'); return; }
                         if (!isPositionValid(x, y)) { alert('Không thể di chuyển đến vùng địa hình này!'); return; }
                         if (!getAdjacentBuildings(x, y).some(b => b.type === 'ROAD')) { alert('Phải đặt cạnh đường!'); return; }
-                        if (gameState.inventory.certificates < MOVE_COST) { alert(`Không đủ chứng nhận! Cần ${MOVE_COST}.`); return; }
                         
-                        gameState.inventory.certificates -= MOVE_COST;
+                        // MODIFIED: Cost check and deduction removed
+                        // if (gameState.inventory.certificates < MOVE_COST) { alert(`Không đủ chứng nhận! Cần ${MOVE_COST}.`); return; }
+                        // gameState.inventory.certificates -= MOVE_COST;
+                        
                         movingBuilding.position = { x, y }; movingBuilding.isInvalid = false;
-                        movingBuilding = null; resetTool(); render();
+                        resetTool(); render();
                     } else {
                         const b = getBuildingAt(x, y);
                         if (b && b.type !== 'ROAD') { movingBuilding = b; controls.instructions.textContent = 'Chọn vị trí mới để đặt xuống.'; }
                     }
                 }
             }
-        }
-
-        function placeBuilding(x, y, type) {
-            let name = type;
-            if (type === 'KNOWLEDGE_HOUSE') name = prompt('Đặt tên cho kiến thức:');
-            else if (type === 'PARK') name = 'Công viên';
-            if (!name && type === 'KNOWLEDGE_HOUSE') return;
-            gameState.city.buildings.push({ id: `b_${Date.now()}`, type, name, level: 1, position: { x, y }, bonusPop: 0 });
-        }
-        
-        infoPanel.nameInput.addEventListener('change', e => gameState.cityName = e.target.value);
-
-        controls.saveBtn.addEventListener('click', () => {
-            const dataStr = JSON.stringify(gameState, null, 2);
-            const blob = new Blob([dataStr], { type: "application/json" });
-            const a = document.createElement('a');
-            a.href = URL.createObjectURL(blob); a.download = 'city_of_knowledge_save.json';
-            a.click(); a.remove();
-        });
-        controls.loadBtn.addEventListener('click', () => controls.loadInput.click());
-        controls.loadInput.addEventListener('change', e => {
-            const file = e.target.files[0]; if (!file) return;
-            const reader = new FileReader();
-            reader.onload = re => {
-                try {
-                    const loadedState = JSON.parse(re.target.result);
-                    if (!loadedState.city) throw new Error('Invalid save file');
-                    loadedState.city.buildings.forEach(b => {
-                        b.isInvalid = b.position && !isPositionValid(b.position.x, b.position.y);
-                    });
-                    gameState = loadedState; render();
-                    alert('Tải game thành công! Các công trình ở vị trí không hợp lệ sẽ được làm mờ.');
-                } catch (err) { alert('Lỗi: ' + err.message); }
-            };
-            reader.readAsText(file); e.target.value = null;
-        });
-
-        function getCell(x, y) { return document.querySelector(`.grid-cell[data-x='${x}'][data-y='${y}']`); }
-        function getBuildingAt(x, y) { return gameState.city.buildings.find(b => b.position && b.position.x === x && b.position.y === y); }
-        function getAdjacentBuildings(x, y) {
-            const adj = []; [[-1, 0], [1, 0], [0, -1], [0, 1]].forEach(([dx, dy]) => { const b = getBuildingAt(x + dx, y + dy); if (b) adj.push(b); });
-            return adj;
         }
 
         function openBuildingModal(building) {
@@ -478,54 +419,162 @@
                 modals.kh.classList.remove('hidden');
                 modals.kh.querySelector('#kh-modal-title').textContent = building.name;
                 modals.kh.querySelector('#kh-modal-level').textContent = building.level;
-                 modals.kh.querySelector('#kh-modal-population').textContent = POP_BY_LEVEL[building.level] + (building.bonusPop || 0);
+                const pop = (POP_BY_LEVEL[building.level] || 0) + (building.bonusPop || 0);
+                modals.kh.querySelector('#kh-modal-population').textContent = pop;
             } else if (building.type === 'FACTORY') {
-                modals.factory.classList.remove('hidden');
-                // render project list for factory
+                modals.factory.classList.remove('hidden'); renderProjectList();
             } else if (building.type === 'PARK') {
-                modals.park.classList.remove('hidden');
-                // render recreation project list for park
+                modals.park.classList.remove('hidden'); renderProjectList();
             } else if (building.type === 'ROAD') {
-                modals.road.classList.remove('hidden');
-                // update road modal info
+                modals.road.classList.remove('hidden'); updateRoadModal();
             }
         }
         
-        function closeModal() {
-            modalBackdrop.classList.add('hidden');
-            allModals.forEach(m => m.classList.add('hidden')); activeBuilding = null;
+        function closeModal() { modalBackdrop.classList.add('hidden'); allModals.forEach(m => m.classList.add('hidden')); activeBuilding = null; }
+
+        function getCell(x, y) { return document.querySelector(`.grid-cell[data-x='${x}'][data-y='${y}']`); }
+        function getBuildingAt(x, y) { return gameState.city.buildings.find(b => b.position && b.position.x === x && b.position.y === y); }
+        function getAdjacentBuildings(x, y) { const adj = []; [[-1, 0], [1, 0], [0, -1], [0, 1]].forEach(([dx, dy]) => { const b = getBuildingAt(x + dx, y + dy); if (b) adj.push(b); }); return adj; }
+
+        function openProjectModal(type) {
+            closeModal();
+            const form = modals.project.querySelector('form');
+            form.reset();
+            form.dataset.projectType = type;
+            modals.project.querySelector('#tasks-container').innerHTML = '<input type="text" class="task-input" required placeholder="Công việc đầu tiên">';
+            const targetWrapper = modals.project.querySelector('#project-target-wrapper');
+
+            if (type === 'KNOWLEDGE') {
+                modals.project.querySelector('#project-modal-title').textContent = 'Tạo Dự án Kiến thức';
+                targetWrapper.classList.remove('hidden');
+                const select = targetWrapper.querySelector('select');
+                select.innerHTML = '';
+                gameState.city.buildings.filter(b => b.type === 'KNOWLEDGE_HOUSE').forEach(h => {
+                    const option = document.createElement('option');
+                    option.value = h.id; option.textContent = `${h.name} (Lvl ${h.level})`;
+                    select.appendChild(option);
+                });
+                if(select.innerHTML === '') { alert('Bạn cần xây Nhà Kiến thức trước!'); return; }
+            } else { // RECREATION
+                modals.project.querySelector('#project-modal-title').textContent = 'Lên kế hoạch Giải trí';
+                targetWrapper.classList.add('hidden');
+            }
+            modals.project.classList.remove('hidden');
         }
 
+        function renderProjectList() {
+            const kList = modals.factory.querySelector('#projects-list');
+            const rList = modals.park.querySelector('#recreation-projects-list');
+            kList.innerHTML = ''; rList.innerHTML = '';
+
+            const knowledgeProjects = gameState.projects.filter(p => p.type === 'KNOWLEDGE');
+            const recreationProjects = gameState.projects.filter(p => p.type === 'RECREATION');
+            
+            (knowledgeProjects.length > 0 ? knowledgeProjects : [{isEmpty: true, list: kList, type: 'Kiến thức'}])
+            .concat(recreationProjects.length > 0 ? recreationProjects : [{isEmpty: true, list: rList, type: 'Giải trí'}])
+            .forEach(p => {
+                if (p.isEmpty) { p.list.innerHTML = `<p>Chưa có dự án ${p.type} nào.</p>`; return; }
+
+                const targetList = p.type === 'KNOWLEDGE' ? kList : rList;
+                const item = document.createElement('div');
+                item.className = `project-item project-item-${p.type.toLowerCase()} ${p.status === 'COMPLETED' ? 'completed' : ''}`;
+                
+                const targetName = p.type === 'KNOWLEDGE' ? (gameState.city.buildings.find(b => b.id === p.targetBuildingId)?.name || 'Nhà đã bị phá hủy') : p.name;
+                let tasksHtml = '<ul>';
+                p.tasks.forEach((task, i) => tasksHtml += `<li><input type="checkbox" id="task_${p.id}_${i}" data-pid="${p.id}" data-tidx="${i}" ${task.completed ? 'checked' : ''} ${p.status === 'COMPLETED' ? 'disabled' : ''}><label for="task_${p.id}_${i}">${task.description}</label></li>`);
+                tasksHtml += '</ul>';
+
+                const canProduce = p.tasks.every(t => t.completed);
+                const buttonHtml = p.status === 'IN_PROGRESS' ? `<button class="produce-btn" data-pid="${p.id}" ${!canProduce ? 'disabled' : ''}>Sản xuất Chứng nhận</button>` : '<strong>Đã hoàn thành!</strong>';
+
+                item.innerHTML = `<h3>${p.name} ${p.type === 'KNOWLEDGE' ? `(Cho: ${targetName})` : ''}</h3> ${tasksHtml} ${buttonHtml}`;
+                targetList.appendChild(item);
+            });
+        }
+        
+        function updateRoadModal() {
+            const segment = findConnectedSegment(activeBuilding);
+            const connectedHouses = getHousesConnectedToSegment(segment);
+            const roadLevel = activeBuilding.level;
+            const nextLevel = roadLevel + 1;
+            const cost = connectedHouses.length;
+            const housesMeetCondition = connectedHouses.every(h => h.level >= nextLevel);
+            const canAfford = gameState.inventory.certificates >= cost;
+            const canUpgrade = housesMeetCondition && canAfford && roadLevel < 6;
+            modals.road.querySelector('#road-modal-level').textContent = roadLevel;
+            modals.road.querySelector('#road-modal-next-level').textContent = nextLevel;
+            const conditionsEl = modals.road.querySelector('#road-modal-conditions');
+            conditionsEl.innerHTML = `
+                <li class="${housesMeetCondition ? '' : 'danger'}">Tất cả ${connectedHouses.length} nhà kết nối phải đạt cấp ${nextLevel} trở lên.</li>
+                <li class="${canAfford ? '' : 'danger'}">Cần ${cost} Chứng nhận để nâng cấp.</li>`;
+            const upgradeBtn = modals.road.querySelector('#road-upgrade-btn');
+            upgradeBtn.disabled = !canUpgrade;
+            upgradeBtn.textContent = roadLevel >= 6 ? 'Đã đạt cấp tối đa' : 'Nâng cấp';
+        }
+
+        function findConnectedSegment(startTile) {
+            const segment = [], queue = [startTile], visited = new Set([`${startTile.position.x},${startTile.position.y}`]);
+            while (queue.length > 0) {
+                const current = queue.shift(); segment.push(current);
+                getAdjacentBuildings(current.position.x, current.position.y).forEach(neighbor => {
+                    const posKey = `${neighbor.position.x},${neighbor.position.y}`;
+                    if (neighbor.type === 'ROAD' && neighbor.level === startTile.level && !visited.has(posKey)) {
+                        visited.add(posKey); queue.push(neighbor);
+                    }
+                });
+            }
+            return segment;
+        }
+        function getHousesConnectedToSegment(segment) {
+            const houses = new Map();
+            segment.forEach(tile => getAdjacentBuildings(tile.position.x, tile.position.y).forEach(n => { if(n.type === 'KNOWLEDGE_HOUSE') houses.set(n.id, n); }));
+            return Array.from(houses.values());
+        }
+
+        // --- Event Listeners ---
+        infoPanel.nameInput.addEventListener('change', e => gameState.cityName = e.target.value);
+        controls.main.addEventListener('click', e => { if (e.target.tagName === 'BUTTON' && !e.target.disabled) { const type = e.target.dataset.type; const tool = e.target.dataset.tool; if (type) setTool('BUILD', type); if (tool) setTool(tool); } });
+        grid.addEventListener('mousedown', e => { if (currentTool && e.target.classList.contains('grid-cell')) { isDrawing = true; handleGridInteraction(e.target, 'start'); } });
+        grid.addEventListener('mousemove', e => { if (isDrawing && e.target.classList.contains('grid-cell')) handleGridInteraction(e.target, 'drag'); });
+        window.addEventListener('mouseup', () => { if (isDrawing) { isDrawing = false; if (currentTool?.type === 'BUILD' && currentTool?.detail === 'ROAD') { document.querySelectorAll('.road-preview').forEach(c => { const [x, y] = [parseInt(c.dataset.x), parseInt(c.dataset.y)]; if (!getBuildingAt(x, y)) placeBuilding(x, y, 'ROAD'); }); resetTool(); render(); } else if (currentTool?.type === 'DESTROY_ROAD') { resetTool(); render(); } } });
+        grid.addEventListener('click', e => { if (!currentTool && e.target.classList.contains('grid-cell')) { const b = getBuildingAt(parseInt(e.target.dataset.x), parseInt(e.target.dataset.y)); if (b) openBuildingModal(b); } });
         modalBackdrop.addEventListener('click', e => { if (e.target === modalBackdrop || e.target.classList.contains('close-btn')) closeModal(); });
         
-        // --- Add specific modal interaction logic here (omitted for initial brevity) ---
-        // Example: KH Upgrade Button
-        modals.kh.querySelector('#kh-upgrade-btn').addEventListener('click', () => {
-            closeModal();
-            modals.khUpgrade.classList.remove('hidden');
-            // Populate custom upgrade modal
-            const minCert = 1; // This can be dynamic later
-            modals.khUpgrade.querySelector('#kh-upgrade-min').textContent = minCert;
-            modals.khUpgrade.querySelector('#kh-upgrade-amount').min = minCert;
-            modals.khUpgrade.querySelector('#kh-upgrade-amount').value = minCert;
-        });
+        controls.saveBtn.addEventListener('click', () => { const d = JSON.stringify(gameState, null, 2), b = new Blob([d], {type:"application/json"}), a = document.createElement('a'); a.href = URL.createObjectURL(b); a.download = `${gameState.cityName.replace(/\s/g, '_')}_save.json`; a.click(); a.remove(); });
+        controls.loadBtn.addEventListener('click', () => controls.loadInput.click());
+        controls.loadInput.addEventListener('change', e => { const f = e.target.files[0]; if (!f) return; const r = new FileReader(); r.onload = re => { try { const s = JSON.parse(re.target.result); if (!s.city) throw new Error('Invalid file'); s.city.buildings.forEach(b => b.isInvalid = b.position && !isPositionValid(b.position.x, b.position.y)); gameState = s; render(); alert('Tải thành công!'); } catch (err) { alert('Lỗi: ' + err.message); }}; r.readAsText(f); e.target.value=null; });
 
-        modals.khUpgrade.querySelector('#kh-upgrade-confirm-btn').addEventListener('click', () => {
-            const amount = parseInt(modals.khUpgrade.querySelector('#kh-upgrade-amount').value);
-            const min = parseInt(modals.khUpgrade.querySelector('#kh-upgrade-min').textContent);
-            if (gameState.inventory.certificates < amount) { alert('Không đủ chứng nhận!'); return; }
-            
-            gameState.inventory.certificates -= amount;
-            activeBuilding.level++;
-            const bonus = amount - min;
-            if (bonus > 0) activeBuilding.bonusPop = (activeBuilding.bonusPop || 0) + bonus;
+        modals.kh.querySelector('#kh-destroy-btn').addEventListener('click', () => { if (confirm(`Phá hủy "${activeBuilding.name}"?`)) { gameState.city.buildings = gameState.city.buildings.filter(b => b.id !== activeBuilding.id); gameState.projects = gameState.projects.filter(p => p.targetBuildingId !== activeBuilding.id); closeModal(); render(); }});
+        modals.kh.querySelector('#kh-upgrade-btn').addEventListener('click', () => { closeModal(); modals.khUpgrade.classList.remove('hidden'); const min = 1; modals.khUpgrade.querySelector('#kh-upgrade-min').textContent = min; modals.khUpgrade.querySelector('#kh-upgrade-amount').min = min; modals.khUpgrade.querySelector('#kh-upgrade-amount').value = min; });
+        modals.khUpgrade.querySelector('#kh-upgrade-confirm-btn').addEventListener('click', () => { const amount = parseInt(modals.khUpgrade.querySelector('#kh-upgrade-amount').value), min = 1; if (gameState.inventory.certificates < amount) { alert('Không đủ chứng nhận!'); return; } if (activeBuilding.level >= 6) { alert('Đã đạt cấp tối đa!'); return; } gameState.inventory.certificates -= amount; activeBuilding.level++; const bonus = amount - min; if (bonus > 0) activeBuilding.bonusPop = (activeBuilding.bonusPop || 0) + bonus; alert(`Nâng cấp thành công!`); closeModal(); render(); });
+        
+        modals.factory.querySelector('#create-knowledge-project-btn').addEventListener('click', () => openProjectModal('KNOWLEDGE'));
+        modals.park.querySelector('#create-recreation-project-btn').addEventListener('click', () => openProjectModal('RECREATION'));
+        modals.project.querySelector('#add-task-btn').addEventListener('click', () => { const i = document.createElement('input'); i.type = 'text'; i.className = 'task-input'; i.required = true; i.placeholder = 'Công việc tiếp theo'; modals.project.querySelector('#tasks-container').appendChild(i); });
+        modals.project.querySelector('form').addEventListener('submit', e => { e.preventDefault(); const form = e.target; const type = form.dataset.projectType; const newProject = { id: `p_${Date.now()}`, type, name: form.querySelector('#project-name').value, status: 'IN_PROGRESS', tasks: Array.from(form.querySelectorAll('.task-input')).map(i => ({ description: i.value, completed: false })) }; if (type === 'KNOWLEDGE') newProject.targetBuildingId = form.querySelector('#project-target-building').value; gameState.projects.push(newProject); closeModal(); render(); });
+        
+        modals.road.querySelector('#road-upgrade-btn').addEventListener('click', () => { const seg = findConnectedSegment(activeBuilding), houses = getHousesConnectedToSegment(seg), nextLvl = activeBuilding.level + 1, cost = houses.length; if(gameState.inventory.certificates < cost || !houses.every(h => h.level >= nextLvl)) { alert('Không đủ điều kiện!'); return; } gameState.inventory.certificates -= cost; seg.forEach(t => t.level = nextLvl); alert('Nâng cấp đoạn đường thành công!'); closeModal(); render(); });
 
-            alert(`Nâng cấp thành công lên cấp ${activeBuilding.level}!`);
-            closeModal(); render();
-        });
+        document.getElementById('projects-list').addEventListener('click', handleProjectInteraction);
+        document.getElementById('recreation-projects-list').addEventListener('click', handleProjectInteraction);
 
+        function handleProjectInteraction(e) {
+            const pid = e.target.dataset.pid;
+            if (!pid) return;
+            const project = gameState.projects.find(p => p.id === pid);
+            if (!project) return;
+            if (e.target.type === 'checkbox') {
+                const tidx = parseInt(e.target.dataset.tidx);
+                project.tasks[tidx].completed = e.target.checked;
+            } else if (e.target.classList.contains('produce-btn')) {
+                const certType = project.type === 'KNOWLEDGE' ? 'certificates' : 'recreation_certificates';
+                gameState.inventory[certType]++;
+                project.status = 'COMPLETED';
+                alert(`Sản xuất thành công 1 "Chứng nhận ${project.type === 'KNOWLEDGE' ? 'Hoàn thành' : 'Giải trí'}"!`);
+            }
+            renderProjectList();
+        }
 
-        // Initialize
         initGrid();
         render();
     });
