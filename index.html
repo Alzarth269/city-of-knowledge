@@ -3,9 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>City of Knowledge - The Evolved Prototype</title>
+    <title>City of Knowledge - Memory Update</title>
     
-    <!-- CSS Styles -->
     <style>
         :root {
             --grid-size: 20; --cell-size: 40px;
@@ -14,142 +13,73 @@
             --road-lvl1-color: #A1887F; --road-lvl2-color: #757575; --road-lvl3-color: #F44336;
             --road-lvl4-color: #607D8B; --road-lvl5-color: #455A64; --road-lvl6-color: #37474F;
         }
-
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-            display: flex; flex-direction: column; align-items: center;
-            background-color: #f0f2f5; margin: 0; padding: 20px; color: #333;
-        }
-        
-        /* NEW: Main layout for side-by-side view */
-        .app-layout {
-            display: flex;
-            flex-direction: row;
-            align-items: flex-start;
-            gap: 20px;
-        }
-        .game-column {
-            display: flex;
-            flex-direction: column;
-            gap: 15px;
-        }
-        .controls-column {
-            flex-shrink: 0;
-        }
-
-        #info-panel {
-            width: calc(var(--grid-size) * var(--cell-size));
-            padding: 10px; box-sizing: border-box; background: #fff; border-radius: 8px;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.1); display: flex; justify-content: space-between; align-items: center;
-        }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; display: flex; flex-direction: column; align-items: center; background-color: #f0f2f5; margin: 0; padding: 20px; color: #333; }
+        .app-layout { display: flex; flex-direction: row; align-items: flex-start; gap: 20px; }
+        .game-column { display: flex; flex-direction: column; gap: 15px; }
+        .controls-column { flex-shrink: 0; }
+        #info-panel { width: calc(var(--grid-size) * var(--cell-size)); padding: 10px; box-sizing: border-box; background: #fff; border-radius: 8px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); display: flex; justify-content: space-between; align-items: center; }
         #info-panel h2 { margin: 0; font-size: 1.2em; display: flex; align-items: center; gap: 5px; }
         #info-panel h2 input { border: none; font-size: 1em; font-weight: bold; width: 200px; padding: 5px; border-radius: 4px; }
         #info-panel h2 input:focus { outline: 2px solid var(--house-color); }
         #info-panel p { margin: 0; font-size: 1.1em; }
         #info-panel p span { font-weight: bold; }
-
         #game-container { position: relative; border: 2px solid #333; box-shadow: 0 10px 20px rgba(0,0,0,0.1); }
-        #game-grid {
-            display: grid;
-            grid-template-columns: repeat(var(--grid-size), var(--cell-size));
-            grid-template-rows: repeat(var(--grid-size), var(--cell-size));
-            width: calc(var(--grid-size) * var(--cell-size)); height: calc(var(--grid-size) * var(--cell-size));
-            cursor: pointer;
-        }
-        
+        #game-grid { display: grid; grid-template-columns: repeat(var(--grid-size), var(--cell-size)); grid-template-rows: repeat(var(--grid-size), var(--cell-size)); width: calc(var(--grid-size) * var(--cell-size)); height: calc(var(--grid-size) * var(--cell-size)); cursor: pointer; }
         #game-grid.move-mode { cursor: grabbing; }
         #game-grid.destroy-mode { cursor: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='32' height='32' viewport='0 0 100 100' style='fill:black;font-size:24px;'><text y='50%'>💣</text></svg>") 16 16, auto; }
         #game-grid.build-mode { cursor: crosshair; }
-
-        .grid-cell {
-            width: var(--cell-size); height: var(--cell-size); border: 1px solid #0000001a;
-            box-sizing: border-box; display: flex; align-items: center; justify-content: center;
-            font-size: 10px; font-weight: bold; text-align: center;
-            background-size: cover; color: white; text-shadow: 1px 1px 2px black; transition: background-color 0.2s;
-        }
-
+        .grid-cell { width: var(--cell-size); height: var(--cell-size); border: 1px solid #0000001a; box-sizing: border-box; display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: bold; text-align: center; background-size: cover; color: white; text-shadow: 1px 1px 2px black; transition: background-color 0.2s; }
         .grid-cell:not(.buildable) { cursor: not-allowed; }
         .grid-cell.buildable:hover { background-color: rgba(255, 255, 255, 0.4); }
         .grid-cell.road-preview { background-color: rgba(121, 85, 72, 0.5); }
-
         .mountain { background-color: var(--mountain-color); } .sand { background-color: var(--sand-color); }
         .sea { background-color: var(--sea-color); } .grass { background-color: var(--grass-color); }
-
         .knowledge-house { background-color: var(--house-color); } .factory { background-color: var(--factory-color); }
         .park { background-color: var(--park-color); } .road { color: #f0f0f0; }
         .road.road-lvl-1 { background-color: var(--road-lvl1-color); } .road.road-lvl-2 { background-color: var(--road-lvl2-color); }
         .road.road-lvl-3 { background-color: var(--road-lvl3-color); } .road.road-lvl-4 { background-color: var(--road-lvl4-color); }
         .road.road-lvl-5 { background-color: var(--road-lvl5-color); } .road.road-lvl-6 { background-color: var(--road-lvl6-color); }
-        
         .invalid-building { opacity: 0.6; border: 2px dashed #D32F2F !important; animation: blink 1.5s infinite; }
         @keyframes blink { 50% { border-color: transparent; } }
-
-        /* MODIFIED: Controls Panel styling */
-        #main-controls {
-            width: 300px; /* Fixed width for the side panel */
-            padding: 10px; box-sizing: border-box; background: #fff;
-            border-radius: 8px; box-shadow: 0 4px 10px rgba(0,0,0,0.1);
-            display: flex; flex-direction: column; /* Stack control groups vertically */
-            gap: 15px;
-        }
+        #main-controls { width: 300px; padding: 10px; box-sizing: border-box; background: #fff; border-radius: 8px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); display: flex; flex-direction: column; gap: 15px; }
         .control-group { display: flex; gap: 10px; flex-direction: column; }
         .control-group h3 { margin: 0 0 5px 0; font-size: 1.1em; border-bottom: 1px solid #eee; padding-bottom: 5px; }
         .control-group .button-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 5px; }
         #build-instructions { font-style: italic; color: #555; margin: 0; min-height: 20px; }
-
         .hidden { display: none !important; }
-
-        #modal-backdrop {
-            position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
-            background-color: rgba(0, 0, 0, 0.6); z-index: 100;
-            display: flex; align-items: center; justify-content: center;
-        }
-        .modal {
-            background-color: #fff; padding: 25px; border-radius: 8px; min-width: 450px;
-            max-width: 90vw; box-shadow: 0 5px 20px rgba(0,0,0,0.3); border-top: 5px solid #03A9F4;
-        }
+        #modal-backdrop { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background-color: rgba(0, 0, 0, 0.6); z-index: 100; display: flex; align-items: center; justify-content: center; }
+        .modal { background-color: #fff; padding: 25px; border-radius: 8px; min-width: 450px; max-width: 90vw; box-shadow: 0 5px 20px rgba(0,0,0,0.3); border-top: 5px solid #03A9F4; }
         .modal h2 { margin-top: 0; }
         .modal .close-btn { float: right; background: none; border: none; font-size: 1.5em; cursor: pointer; }
-
         form { display: flex; flex-direction: column; gap: 15px; }
         input, select, button { padding: 10px; font-size: 1em; border-radius: 4px; border: 1px solid #ccc; }
         button { cursor: pointer; background-color: #eee; transition: background-color 0.2s; }
         button:hover:not(:disabled) { background-color: #ddd; }
         button:disabled { background-color: #f5f5f5; color: #aaa; cursor: not-allowed; }
         button.danger { background-color: #F44336; color: white; }
-        .form-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 10px; }
-        #tasks-container { display: flex; flex-direction: column; gap: 5px; max-height: 150px; overflow-y: auto; padding: 5px; border: 1px solid #eee; }
-
-        #projects-list, #recreation-projects-list { max-height: 300px; overflow-y: auto; }
-        .project-item { border: 1px solid #ccc; padding: 10px; margin-bottom: 10px; border-radius: 4px; }
-        .project-item h3 { margin: 0 0 10px 0; font-size: 1.1em; }
-        .project-item ul { padding-left: 20px; margin: 0; }
+        #projects-list, #recreation-projects-list, #kh-history-list { max-height: 300px; overflow-y: auto; }
+        .project-item, .history-item { border: 1px solid #ccc; padding: 10px; margin-bottom: 10px; border-radius: 4px; }
+        .project-item h3, .history-item summary { margin: 0 0 10px 0; font-size: 1.1em; font-weight: bold; cursor: pointer; }
+        .project-item ul, .history-item ul { padding-left: 20px; margin: 0; }
         .project-item.completed { background-color: #e0e0e0; }
         .project-item.completed h3, .project-item.completed label { text-decoration: line-through; color: #777; }
         .project-item-recreation { border-left: 5px solid var(--park-color); }
         .project-item-knowledge { border-left: 5px solid var(--house-color); }
-
-        #kh-upgrade-custom-modal .input-group { display: flex; align-items: center; gap: 10px; margin: 15px 0; }
-        #kh-upgrade-custom-modal .input-group input { flex: 1; }
+        #tooltip { position: fixed; background: #333; color: white; padding: 5px 10px; border-radius: 4px; z-index: 200; pointer-events: none; font-size: 0.9em; }
     </style>
 </head>
 <body>
 
-    <!-- NEW: Main layout wrapper -->
     <div class="app-layout">
-        <!-- Column for game area -->
         <div class="game-column">
             <div id="info-panel">
                 <h2><input type="text" id="city-name-input"></h2>
                 <p>Dân số: <span id="population-display">0</span></p>
             </div>
-
             <div id="game-container">
                 <div id="game-grid"></div>
             </div>
         </div>
-
-        <!-- Column for controls -->
         <div class="controls-column">
             <div id="main-controls">
                 <div class="control-group">
@@ -179,35 +109,36 @@
         </div>
     </div>
 
-    <!-- Modals (unchanged structure) -->
+    <!-- Tooltip -->
+    <div id="tooltip" class="hidden"></div>
+
+    <!-- Modals -->
     <div id="modal-backdrop" class="hidden">
         <div id="knowledge-house-modal" class="modal hidden">
             <button class="close-btn">&times;</button> <h2 id="kh-modal-title"></h2>
             <p>Cấp độ: <span id="kh-modal-level"></span> | Dân số: <span id="kh-modal-population"></span></p>
+            <h3>Lịch sử Nâng cấp</h3>
+            <div id="kh-history-list"></div>
             <button id="kh-upgrade-btn">Nâng cấp</button> <button id="kh-destroy-btn" class="danger">Phá hủy</button>
         </div>
 
-        <div id="kh-upgrade-custom-modal" class="modal hidden">
-            <button class="close-btn">&times;</button> <h2>Nâng cấp Nhà Kiến thức</h2>
-            <p>Dùng chứng nhận để nâng cấp. Dùng nhiều hơn mức tối thiểu sẽ tăng dân số vĩnh viễn cho nhà.</p>
-            <div class="input-group">
-                <label for="kh-upgrade-amount">Số lượng chứng nhận:</label>
-                <input type="number" id="kh-upgrade-amount" min="1" value="1">
-            </div>
-            <p>Tối thiểu: <span id="kh-upgrade-min">1</span>. Mỗi +1 thêm = +1 dân thưởng.</p>
-            <button id="kh-upgrade-confirm-btn">Xác nhận Nâng cấp</button>
+        <div id="select-certificate-modal" class="modal hidden">
+            <button class="close-btn">&times;</button> <h2>Chọn Chứng nhận để Nâng cấp</h2>
+            <p>Chọn một thành quả bạn đã hoàn thành để ghi vào lịch sử của ngôi nhà này.</p>
+            <select id="certificate-select" style="width: 100%; margin-bottom: 15px;"></select>
+            <button id="confirm-upgrade-btn">Xác nhận</button>
         </div>
 
         <div id="factory-modal" class="modal hidden">
             <button class="close-btn">&times;</button> <h2>Nhà máy</h2>
-            <p>Nơi tạo ra các dự án để nhận "Chứng nhận Hoàn thành".</p>
+            <p>Các dự án đang thực hiện. Hoàn thành để tạo ra Chứng nhận.</p>
             <div id="projects-list"></div>
             <button id="create-knowledge-project-btn">+ Tạo Dự án Kiến thức</button>
         </div>
 
         <div id="park-modal" class="modal hidden">
             <button class="close-btn">&times;</button> <h2>Công viên</h2>
-            <p>Lên kế hoạch cho các hoạt động giải trí và nỗ lực hoàn thành để tận hưởng thành quả.</p>
+            <p>Các kế hoạch giải trí đang thực hiện.</p>
             <div id="recreation-projects-list"></div>
             <button id="create-recreation-project-btn">+ Lên kế hoạch Giải trí</button>
         </div>
@@ -230,7 +161,7 @@
             <button class="close-btn">&times;</button> <h2>Nâng cấp Đoạn đường</h2>
             <div id="road-modal-info">
                 <p>Cấp độ hiện tại: <span id="road-modal-level"></span></p>
-                <p>Điều kiện nâng cấp lên cấp <span id="road-modal-next-level"></span>:</p>
+                <p>Điều kiện nâng cấp: <span id="road-modal-next-level"></span>:</p>
                 <ul id="road-modal-conditions"></ul>
             </div>
             <button id="road-upgrade-btn">Nâng cấp</button>
@@ -242,7 +173,10 @@
     document.addEventListener('DOMContentLoaded', () => {
         let gameState = {
             cityName: 'Thành phố Kiến thức',
-            inventory: { certificates: 0, recreation_certificates: 0 },
+            inventory: {
+                certificates: [], // NEW: Is now an array of objects
+                recreation_certificates: 0 
+            },
             city: { buildings: [] },
             projects: []
         };
@@ -252,11 +186,11 @@
         const POPULATION_UNLOCKS = { FACTORY: 50, PARK: 100 };
         const POP_BY_LEVEL = { 1: 10, 2: 25, 3: 50, 4: 100, 5: 200, 6: 400 };
         const PARK_AOE_BONUS = 4;
-        const MOVE_COST = 0; // MODIFIED: Set move cost to 0
         
         let currentTool = null, activeBuilding = null, movingBuilding = null, isDrawing = false;
 
         const grid = document.getElementById('game-grid');
+        const tooltip = document.getElementById('tooltip');
         const infoPanel = { nameInput: document.getElementById('city-name-input'), population: document.getElementById('population-display') };
         const controls = {
             buildFactoryBtn: document.getElementById('build-factory-btn'), buildParkBtn: document.getElementById('build-park-btn'),
@@ -266,7 +200,7 @@
         const modalBackdrop = document.getElementById('modal-backdrop');
         const allModals = document.querySelectorAll('.modal');
         const modals = {
-            kh: document.getElementById('knowledge-house-modal'), khUpgrade: document.getElementById('kh-upgrade-custom-modal'),
+            kh: document.getElementById('knowledge-house-modal'), selectCert: document.getElementById('select-certificate-modal'),
             factory: document.getElementById('factory-modal'), park: document.getElementById('park-modal'),
             project: document.getElementById('create-project-modal'), road: document.getElementById('road-modal')
         };
@@ -328,7 +262,6 @@
             gameState.city.buildings.forEach(b => {
                 if (b.type === 'KNOWLEDGE_HOUSE') {
                     totalPop += POP_BY_LEVEL[b.level] || 0;
-                    totalPop += b.bonusPop || 0;
                     if (parks.some(p => Math.abs(p.position.x - b.position.x) <= 1 && Math.abs(p.position.y - b.position.y) <= 1 && p.id !== b.id)) {
                         totalPop += PARK_AOE_BONUS;
                     }
@@ -337,45 +270,30 @@
             return totalPop;
         }
 
-        function isPositionValid(x, y) {
-            return !(TERRAIN.MOUNTAIN.includes(x) || TERRAIN.SAND.includes(x) || TERRAIN.SEA.includes(x));
-        }
-
+        function isPositionValid(x, y) { return !(TERRAIN.MOUNTAIN.includes(x) || TERRAIN.SAND.includes(x) || TERRAIN.SEA.includes(x)); }
         function setTool(type, detail = null) {
-            currentTool = { type, detail }; movingBuilding = null;
-            grid.className = 'game-grid';
+            currentTool = { type, detail }; movingBuilding = null; grid.className = 'game-grid';
             let text = '';
-            if (type === 'BUILD') {
-                text = detail === 'ROAD' ? 'Kéo thả để vẽ đường.' : `Chọn vị trí để xây ${detail.replace('_', ' ')}.`;
-                grid.classList.add('build-mode');
-            } else if (type === 'MOVE') {
-                text = 'Chọn tòa nhà để di chuyển.'; // MODIFIED: Removed cost text
-                grid.classList.add('move-mode');
-            } else if (type === 'DESTROY_ROAD') {
-                text = 'Nhấp hoặc kéo trên đường để phá.'; grid.classList.add('destroy-mode');
-            }
+            if (type === 'BUILD') { text = detail === 'ROAD' ? 'Kéo thả để vẽ đường.' : `Chọn vị trí để xây ${detail.replace('_', ' ')}.`; grid.classList.add('build-mode'); }
+            else if (type === 'MOVE') { text = 'Chọn tòa nhà để di chuyển.'; grid.classList.add('move-mode'); }
+            else if (type === 'DESTROY_ROAD') { text = 'Nhấp hoặc kéo trên đường để phá.'; grid.classList.add('destroy-mode'); }
             controls.instructions.textContent = text;
         }
-
-        function resetTool() {
-            currentTool = null; isDrawing = false; movingBuilding = null;
-            grid.className = 'game-grid';
-            controls.instructions.textContent = '';
-        }
-
+        function resetTool() { currentTool = null; isDrawing = false; movingBuilding = null; grid.className = 'game-grid'; controls.instructions.textContent = ''; }
         function placeBuilding(x, y, type) {
             let name = type;
             if (type === 'KNOWLEDGE_HOUSE') name = prompt('Đặt tên cho kiến thức:');
             else if (type === 'PARK') name = 'Công viên';
             if (!name && type === 'KNOWLEDGE_HOUSE') return;
-            gameState.city.buildings.push({ id: `b_${Date.now()}`, type, name, level: 1, position: { x, y }, bonusPop: 0 });
+            const newBuilding = { id: `b_${Date.now()}`, type, name, level: 1, position: { x, y } };
+            if (type === 'KNOWLEDGE_HOUSE') newBuilding.upgradeHistory = [];
+            gameState.city.buildings.push(newBuilding);
         }
 
         function handleGridInteraction(cell, eventType) {
             const x = parseInt(cell.dataset.x), y = parseInt(cell.dataset.y);
             if (!currentTool) return;
             const { type: toolType, detail: toolDetail } = currentTool;
-
             if (toolType === 'BUILD') {
                 if (toolDetail === 'ROAD') { if (isPositionValid(x, y) && !getBuildingAt(x, y)) cell.classList.add('road-preview'); }
                 else if (eventType === 'start') {
@@ -396,17 +314,9 @@
                         if (getBuildingAt(x, y)) { alert('Vị trí đã có công trình!'); return; }
                         if (!isPositionValid(x, y)) { alert('Không thể di chuyển đến vùng địa hình này!'); return; }
                         if (!getAdjacentBuildings(x, y).some(b => b.type === 'ROAD')) { alert('Phải đặt cạnh đường!'); return; }
-                        
-                        // MODIFIED: Cost check and deduction removed
-                        // if (gameState.inventory.certificates < MOVE_COST) { alert(`Không đủ chứng nhận! Cần ${MOVE_COST}.`); return; }
-                        // gameState.inventory.certificates -= MOVE_COST;
-                        
                         movingBuilding.position = { x, y }; movingBuilding.isInvalid = false;
                         resetTool(); render();
-                    } else {
-                        const b = getBuildingAt(x, y);
-                        if (b && b.type !== 'ROAD') { movingBuilding = b; controls.instructions.textContent = 'Chọn vị trí mới để đặt xuống.'; }
-                    }
+                    } else { const b = getBuildingAt(x, y); if (b && b.type !== 'ROAD') { movingBuilding = b; controls.instructions.textContent = 'Chọn vị trí mới để đặt xuống.'; } }
                 }
             }
         }
@@ -419,46 +329,42 @@
                 modals.kh.classList.remove('hidden');
                 modals.kh.querySelector('#kh-modal-title').textContent = building.name;
                 modals.kh.querySelector('#kh-modal-level').textContent = building.level;
-                const pop = (POP_BY_LEVEL[building.level] || 0) + (building.bonusPop || 0);
-                modals.kh.querySelector('#kh-modal-population').textContent = pop;
-            } else if (building.type === 'FACTORY') {
-                modals.factory.classList.remove('hidden'); renderProjectList();
-            } else if (building.type === 'PARK') {
-                modals.park.classList.remove('hidden'); renderProjectList();
-            } else if (building.type === 'ROAD') {
-                modals.road.classList.remove('hidden'); updateRoadModal();
-            }
+                modals.kh.querySelector('#kh-modal-population').textContent = calculateTotalPopulation();
+                const historyList = modals.kh.querySelector('#kh-history-list');
+                historyList.innerHTML = '';
+                if (building.upgradeHistory && building.upgradeHistory.length > 0) {
+                    building.upgradeHistory.forEach(cert => {
+                        const item = document.createElement('details');
+                        item.className = 'history-item';
+                        let tasksHtml = '<ul>';
+                        cert.tasks.forEach(t => tasksHtml += `<li>${t.description}</li>`);
+                        tasksHtml += '</ul>';
+                        item.innerHTML = `<summary>${cert.name}</summary>${tasksHtml}`;
+                        historyList.appendChild(item);
+                    });
+                } else { historyList.innerHTML = '<p>Chưa có lịch sử nâng cấp nào.</p>'; }
+            } else if (building.type === 'FACTORY') { modals.factory.classList.remove('hidden'); renderProjectList();
+            } else if (building.type === 'PARK') { modals.park.classList.remove('hidden'); renderProjectList();
+            } else if (building.type === 'ROAD') { modals.road.classList.remove('hidden'); updateRoadModal(); }
         }
         
         function closeModal() { modalBackdrop.classList.add('hidden'); allModals.forEach(m => m.classList.add('hidden')); activeBuilding = null; }
-
         function getCell(x, y) { return document.querySelector(`.grid-cell[data-x='${x}'][data-y='${y}']`); }
         function getBuildingAt(x, y) { return gameState.city.buildings.find(b => b.position && b.position.x === x && b.position.y === y); }
         function getAdjacentBuildings(x, y) { const adj = []; [[-1, 0], [1, 0], [0, -1], [0, 1]].forEach(([dx, dy]) => { const b = getBuildingAt(x + dx, y + dy); if (b) adj.push(b); }); return adj; }
 
         function openProjectModal(type) {
             closeModal();
-            const form = modals.project.querySelector('form');
-            form.reset();
-            form.dataset.projectType = type;
+            const form = modals.project.querySelector('form'); form.reset(); form.dataset.projectType = type;
             modals.project.querySelector('#tasks-container').innerHTML = '<input type="text" class="task-input" required placeholder="Công việc đầu tiên">';
             const targetWrapper = modals.project.querySelector('#project-target-wrapper');
-
             if (type === 'KNOWLEDGE') {
                 modals.project.querySelector('#project-modal-title').textContent = 'Tạo Dự án Kiến thức';
                 targetWrapper.classList.remove('hidden');
-                const select = targetWrapper.querySelector('select');
-                select.innerHTML = '';
-                gameState.city.buildings.filter(b => b.type === 'KNOWLEDGE_HOUSE').forEach(h => {
-                    const option = document.createElement('option');
-                    option.value = h.id; option.textContent = `${h.name} (Lvl ${h.level})`;
-                    select.appendChild(option);
-                });
+                const select = targetWrapper.querySelector('select'); select.innerHTML = '';
+                gameState.city.buildings.filter(b => b.type === 'KNOWLEDGE_HOUSE').forEach(h => { const o = document.createElement('option'); o.value = h.id; o.textContent = `${h.name} (Lvl ${h.level})`; select.appendChild(o); });
                 if(select.innerHTML === '') { alert('Bạn cần xây Nhà Kiến thức trước!'); return; }
-            } else { // RECREATION
-                modals.project.querySelector('#project-modal-title').textContent = 'Lên kế hoạch Giải trí';
-                targetWrapper.classList.add('hidden');
-            }
+            } else { modals.project.querySelector('#project-modal-title').textContent = 'Lên kế hoạch Giải trí'; targetWrapper.classList.add('hidden'); }
             modals.project.classList.remove('hidden');
         }
 
@@ -466,117 +372,114 @@
             const kList = modals.factory.querySelector('#projects-list');
             const rList = modals.park.querySelector('#recreation-projects-list');
             kList.innerHTML = ''; rList.innerHTML = '';
-
-            const knowledgeProjects = gameState.projects.filter(p => p.type === 'KNOWLEDGE');
-            const recreationProjects = gameState.projects.filter(p => p.type === 'RECREATION');
-            
-            (knowledgeProjects.length > 0 ? knowledgeProjects : [{isEmpty: true, list: kList, type: 'Kiến thức'}])
-            .concat(recreationProjects.length > 0 ? recreationProjects : [{isEmpty: true, list: rList, type: 'Giải trí'}])
+            const knowledgeProjects = gameState.projects.filter(p => p.type === 'KNOWLEDGE' && p.status === 'IN_PROGRESS');
+            const recreationProjects = gameState.projects.filter(p => p.type === 'RECREATION' && p.status === 'IN_PROGRESS');
+            (knowledgeProjects.length > 0 ? knowledgeProjects : [{isEmpty: true, list: kList, type: 'Kiến thức'}]).concat(recreationProjects.length > 0 ? recreationProjects : [{isEmpty: true, list: rList, type: 'Giải trí'}])
             .forEach(p => {
-                if (p.isEmpty) { p.list.innerHTML = `<p>Chưa có dự án ${p.type} nào.</p>`; return; }
-
+                if (p.isEmpty) { p.list.innerHTML = `<p>Chưa có dự án ${p.type} nào đang thực hiện.</p>`; return; }
                 const targetList = p.type === 'KNOWLEDGE' ? kList : rList;
                 const item = document.createElement('div');
-                item.className = `project-item project-item-${p.type.toLowerCase()} ${p.status === 'COMPLETED' ? 'completed' : ''}`;
-                
+                item.className = `project-item project-item-${p.type.toLowerCase()}`;
                 const targetName = p.type === 'KNOWLEDGE' ? (gameState.city.buildings.find(b => b.id === p.targetBuildingId)?.name || 'Nhà đã bị phá hủy') : p.name;
                 let tasksHtml = '<ul>';
-                p.tasks.forEach((task, i) => tasksHtml += `<li><input type="checkbox" id="task_${p.id}_${i}" data-pid="${p.id}" data-tidx="${i}" ${task.completed ? 'checked' : ''} ${p.status === 'COMPLETED' ? 'disabled' : ''}><label for="task_${p.id}_${i}">${task.description}</label></li>`);
+                p.tasks.forEach((task, i) => tasksHtml += `<li><input type="checkbox" id="task_${p.id}_${i}" data-pid="${p.id}" data-tidx="${i}" ${task.completed ? 'checked' : ''}><label for="task_${p.id}_${i}">${task.description}</label></li>`);
                 tasksHtml += '</ul>';
-
                 const canProduce = p.tasks.every(t => t.completed);
-                const buttonHtml = p.status === 'IN_PROGRESS' ? `<button class="produce-btn" data-pid="${p.id}" ${!canProduce ? 'disabled' : ''}>Sản xuất Chứng nhận</button>` : '<strong>Đã hoàn thành!</strong>';
-
+                const buttonHtml = `<button class="produce-btn" data-pid="${p.id}" ${!canProduce ? 'disabled' : ''}>Hoàn thành & Sản xuất</button>`;
                 item.innerHTML = `<h3>${p.name} ${p.type === 'KNOWLEDGE' ? `(Cho: ${targetName})` : ''}</h3> ${tasksHtml} ${buttonHtml}`;
                 targetList.appendChild(item);
             });
         }
         
-        function updateRoadModal() {
-            const segment = findConnectedSegment(activeBuilding);
-            const connectedHouses = getHousesConnectedToSegment(segment);
-            const roadLevel = activeBuilding.level;
-            const nextLevel = roadLevel + 1;
-            const cost = connectedHouses.length;
-            const housesMeetCondition = connectedHouses.every(h => h.level >= nextLevel);
-            const canAfford = gameState.inventory.certificates >= cost;
-            const canUpgrade = housesMeetCondition && canAfford && roadLevel < 6;
-            modals.road.querySelector('#road-modal-level').textContent = roadLevel;
-            modals.road.querySelector('#road-modal-next-level').textContent = nextLevel;
-            const conditionsEl = modals.road.querySelector('#road-modal-conditions');
-            conditionsEl.innerHTML = `
-                <li class="${housesMeetCondition ? '' : 'danger'}">Tất cả ${connectedHouses.length} nhà kết nối phải đạt cấp ${nextLevel} trở lên.</li>
-                <li class="${canAfford ? '' : 'danger'}">Cần ${cost} Chứng nhận để nâng cấp.</li>`;
-            const upgradeBtn = modals.road.querySelector('#road-upgrade-btn');
-            upgradeBtn.disabled = !canUpgrade;
-            upgradeBtn.textContent = roadLevel >= 6 ? 'Đã đạt cấp tối đa' : 'Nâng cấp';
-        }
-
-        function findConnectedSegment(startTile) {
-            const segment = [], queue = [startTile], visited = new Set([`${startTile.position.x},${startTile.position.y}`]);
-            while (queue.length > 0) {
-                const current = queue.shift(); segment.push(current);
-                getAdjacentBuildings(current.position.x, current.position.y).forEach(neighbor => {
-                    const posKey = `${neighbor.position.x},${neighbor.position.y}`;
-                    if (neighbor.type === 'ROAD' && neighbor.level === startTile.level && !visited.has(posKey)) {
-                        visited.add(posKey); queue.push(neighbor);
-                    }
-                });
+        function handleProjectInteraction(e) {
+            const pid = e.target.dataset.pid; if (!pid) return;
+            const project = gameState.projects.find(p => p.id === pid); if (!project) return;
+            if (e.target.type === 'checkbox') { const tidx = parseInt(e.target.dataset.tidx); project.tasks[tidx].completed = e.target.checked; }
+            else if (e.target.classList.contains('produce-btn')) {
+                if (project.type === 'KNOWLEDGE') {
+                    const newCert = { id: `cert_${Date.now()}`, name: project.name, tasks: project.tasks };
+                    gameState.inventory.certificates.push(newCert);
+                    alert(`Sản xuất thành công 1 "Chứng nhận: ${project.name}"!`);
+                } else { gameState.inventory.recreation_certificates++; alert(`Hoàn thành kế hoạch giải trí! Bạn nhận được 1 Chứng nhận Giải trí.`); }
+                project.status = 'COMPLETED'; // Mark as completed to be filtered out
             }
-            return segment;
+            renderProjectList();
         }
-        function getHousesConnectedToSegment(segment) {
-            const houses = new Map();
-            segment.forEach(tile => getAdjacentBuildings(tile.position.x, tile.position.y).forEach(n => { if(n.type === 'KNOWLEDGE_HOUSE') houses.set(n.id, n); }));
-            return Array.from(houses.values());
+        
+        function migrateSaveData(loadedState) {
+            // Check for old certificate number format
+            if (typeof loadedState.inventory.certificates === 'number') {
+                const certCount = loadedState.inventory.certificates;
+                loadedState.inventory.certificates = []; // Convert to array
+                for(let i=0; i<certCount; i++) {
+                    loadedState.inventory.certificates.push({
+                        id: `legacy_${i}`, name: `Chứng nhận cũ #${i+1}`,
+                        tasks: [{description: 'Dữ liệu từ phiên bản cũ', completed: true}]
+                    });
+                }
+            }
+            // Check buildings for upgradeHistory
+            loadedState.city.buildings.forEach(b => {
+                if (b.type === 'KNOWLEDGE_HOUSE' && !b.upgradeHistory) {
+                    b.upgradeHistory = [];
+                    // Add placeholders based on level
+                    for(let i=1; i < b.level; i++) {
+                        b.upgradeHistory.push({
+                            id: `legacy_upgrade_${b.id}_${i}`, name: `Nâng cấp Lên Cấp ${i+1} (Dữ liệu cũ)`,
+                            tasks: [{description: 'Dữ liệu được chuyển đổi tự động', completed: true}]
+                        });
+                    }
+                }
+            });
+            return loadedState;
         }
 
         // --- Event Listeners ---
         infoPanel.nameInput.addEventListener('change', e => gameState.cityName = e.target.value);
         controls.main.addEventListener('click', e => { if (e.target.tagName === 'BUTTON' && !e.target.disabled) { const type = e.target.dataset.type; const tool = e.target.dataset.tool; if (type) setTool('BUILD', type); if (tool) setTool(tool); } });
         grid.addEventListener('mousedown', e => { if (currentTool && e.target.classList.contains('grid-cell')) { isDrawing = true; handleGridInteraction(e.target, 'start'); } });
-        grid.addEventListener('mousemove', e => { if (isDrawing && e.target.classList.contains('grid-cell')) handleGridInteraction(e.target, 'drag'); });
+        grid.addEventListener('mousemove', e => { if (isDrawing && e.target.classList.contains('grid-cell')) handleGridInteraction(e.target, 'drag'); else if(e.target.classList.contains('grid-cell')) { const b = getBuildingAt(parseInt(e.target.dataset.x), parseInt(e.target.dataset.y)); if(b && b.type === 'KNOWLEDGE_HOUSE') { tooltip.classList.remove('hidden'); tooltip.textContent = `Lịch sử: ${b.upgradeHistory?.length || 0} chứng nhận`; tooltip.style.left = `${e.pageX + 15}px`; tooltip.style.top = `${e.pageY + 15}px`; } else { tooltip.classList.add('hidden'); }} });
+        grid.addEventListener('mouseout', () => tooltip.classList.add('hidden'));
         window.addEventListener('mouseup', () => { if (isDrawing) { isDrawing = false; if (currentTool?.type === 'BUILD' && currentTool?.detail === 'ROAD') { document.querySelectorAll('.road-preview').forEach(c => { const [x, y] = [parseInt(c.dataset.x), parseInt(c.dataset.y)]; if (!getBuildingAt(x, y)) placeBuilding(x, y, 'ROAD'); }); resetTool(); render(); } else if (currentTool?.type === 'DESTROY_ROAD') { resetTool(); render(); } } });
         grid.addEventListener('click', e => { if (!currentTool && e.target.classList.contains('grid-cell')) { const b = getBuildingAt(parseInt(e.target.dataset.x), parseInt(e.target.dataset.y)); if (b) openBuildingModal(b); } });
         modalBackdrop.addEventListener('click', e => { if (e.target === modalBackdrop || e.target.classList.contains('close-btn')) closeModal(); });
         
         controls.saveBtn.addEventListener('click', () => { const d = JSON.stringify(gameState, null, 2), b = new Blob([d], {type:"application/json"}), a = document.createElement('a'); a.href = URL.createObjectURL(b); a.download = `${gameState.cityName.replace(/\s/g, '_')}_save.json`; a.click(); a.remove(); });
         controls.loadBtn.addEventListener('click', () => controls.loadInput.click());
-        controls.loadInput.addEventListener('change', e => { const f = e.target.files[0]; if (!f) return; const r = new FileReader(); r.onload = re => { try { const s = JSON.parse(re.target.result); if (!s.city) throw new Error('Invalid file'); s.city.buildings.forEach(b => b.isInvalid = b.position && !isPositionValid(b.position.x, b.position.y)); gameState = s; render(); alert('Tải thành công!'); } catch (err) { alert('Lỗi: ' + err.message); }}; r.readAsText(f); e.target.value=null; });
+        controls.loadInput.addEventListener('change', e => { const f = e.target.files[0]; if (!f) return; const r = new FileReader(); r.onload = re => { try { let s = JSON.parse(re.target.result); if (!s.city) throw new Error('Invalid file'); s = migrateSaveData(s); s.city.buildings.forEach(b => b.isInvalid = b.position && !isPositionValid(b.position.x, b.position.y)); gameState = s; render(); alert('Tải game thành công!'); } catch (err) { alert('Lỗi: ' + err.message); }}; r.readAsText(f); e.target.value=null; });
 
         modals.kh.querySelector('#kh-destroy-btn').addEventListener('click', () => { if (confirm(`Phá hủy "${activeBuilding.name}"?`)) { gameState.city.buildings = gameState.city.buildings.filter(b => b.id !== activeBuilding.id); gameState.projects = gameState.projects.filter(p => p.targetBuildingId !== activeBuilding.id); closeModal(); render(); }});
-        modals.kh.querySelector('#kh-upgrade-btn').addEventListener('click', () => { closeModal(); modals.khUpgrade.classList.remove('hidden'); const min = 1; modals.khUpgrade.querySelector('#kh-upgrade-min').textContent = min; modals.khUpgrade.querySelector('#kh-upgrade-amount').min = min; modals.khUpgrade.querySelector('#kh-upgrade-amount').value = min; });
-        modals.khUpgrade.querySelector('#kh-upgrade-confirm-btn').addEventListener('click', () => { const amount = parseInt(modals.khUpgrade.querySelector('#kh-upgrade-amount').value), min = 1; if (gameState.inventory.certificates < amount) { alert('Không đủ chứng nhận!'); return; } if (activeBuilding.level >= 6) { alert('Đã đạt cấp tối đa!'); return; } gameState.inventory.certificates -= amount; activeBuilding.level++; const bonus = amount - min; if (bonus > 0) activeBuilding.bonusPop = (activeBuilding.bonusPop || 0) + bonus; alert(`Nâng cấp thành công!`); closeModal(); render(); });
+        modals.kh.querySelector('#kh-upgrade-btn').addEventListener('click', () => {
+            closeModal();
+            const select = modals.selectCert.querySelector('#certificate-select');
+            select.innerHTML = '';
+            const availableCerts = gameState.inventory.certificates;
+            if (availableCerts.length === 0) { alert('Bạn không có chứng nhận nào để nâng cấp!'); return; }
+            availableCerts.forEach(cert => { const o = document.createElement('option'); o.value = cert.id; o.textContent = cert.name; select.appendChild(o); });
+            modals.selectCert.classList.remove('hidden');
+        });
+        modals.selectCert.querySelector('#confirm-upgrade-btn').addEventListener('click', () => {
+            const certId = modals.selectCert.querySelector('#certificate-select').value;
+            if (!certId) return;
+            const certIndex = gameState.inventory.certificates.findIndex(c => c.id === certId);
+            if(certIndex === -1) return;
+            if (activeBuilding.level >= 6) { alert('Đã đạt cấp tối đa!'); return; }
+            const [certToUse] = gameState.inventory.certificates.splice(certIndex, 1);
+            activeBuilding.upgradeHistory.push(certToUse);
+            activeBuilding.level++;
+            alert(`Nâng cấp thành công bằng chứng nhận "${certToUse.name}"!`);
+            closeModal(); render();
+        });
         
         modals.factory.querySelector('#create-knowledge-project-btn').addEventListener('click', () => openProjectModal('KNOWLEDGE'));
         modals.park.querySelector('#create-recreation-project-btn').addEventListener('click', () => openProjectModal('RECREATION'));
         modals.project.querySelector('#add-task-btn').addEventListener('click', () => { const i = document.createElement('input'); i.type = 'text'; i.className = 'task-input'; i.required = true; i.placeholder = 'Công việc tiếp theo'; modals.project.querySelector('#tasks-container').appendChild(i); });
-        modals.project.querySelector('form').addEventListener('submit', e => { e.preventDefault(); const form = e.target; const type = form.dataset.projectType; const newProject = { id: `p_${Date.now()}`, type, name: form.querySelector('#project-name').value, status: 'IN_PROGRESS', tasks: Array.from(form.querySelectorAll('.task-input')).map(i => ({ description: i.value, completed: false })) }; if (type === 'KNOWLEDGE') newProject.targetBuildingId = form.querySelector('#project-target-building').value; gameState.projects.push(newProject); closeModal(); render(); });
+        modals.project.querySelector('form').addEventListener('submit', e => { e.preventDefault(); const form = e.target; const type = form.dataset.projectType; const newProject = { id: `p_${Date.now()}`, type, name: form.querySelector('#project-name').value, status: 'IN_PROGRESS', tasks: Array.from(form.querySelectorAll('.task-input')).map(i => ({ description: i.value, completed: false })) }; if (type === 'KNOWLEDGE') { if(!form.querySelector('#project-target-building').value) { alert('Không có nhà để liên kết!'); return; } newProject.targetBuildingId = form.querySelector('#project-target-building').value; } gameState.projects.push(newProject); closeModal(); render(); });
         
-        modals.road.querySelector('#road-upgrade-btn').addEventListener('click', () => { const seg = findConnectedSegment(activeBuilding), houses = getHousesConnectedToSegment(seg), nextLvl = activeBuilding.level + 1, cost = houses.length; if(gameState.inventory.certificates < cost || !houses.every(h => h.level >= nextLvl)) { alert('Không đủ điều kiện!'); return; } gameState.inventory.certificates -= cost; seg.forEach(t => t.level = nextLvl); alert('Nâng cấp đoạn đường thành công!'); closeModal(); render(); });
-
         document.getElementById('projects-list').addEventListener('click', handleProjectInteraction);
         document.getElementById('recreation-projects-list').addEventListener('click', handleProjectInteraction);
-
-        function handleProjectInteraction(e) {
-            const pid = e.target.dataset.pid;
-            if (!pid) return;
-            const project = gameState.projects.find(p => p.id === pid);
-            if (!project) return;
-            if (e.target.type === 'checkbox') {
-                const tidx = parseInt(e.target.dataset.tidx);
-                project.tasks[tidx].completed = e.target.checked;
-            } else if (e.target.classList.contains('produce-btn')) {
-                const certType = project.type === 'KNOWLEDGE' ? 'certificates' : 'recreation_certificates';
-                gameState.inventory[certType]++;
-                project.status = 'COMPLETED';
-                alert(`Sản xuất thành công 1 "Chứng nhận ${project.type === 'KNOWLEDGE' ? 'Hoàn thành' : 'Giải trí'}"!`);
-            }
-            renderProjectList();
-        }
-
-        initGrid();
-        render();
+        
+        initGrid(); render();
     });
     </script>
 </body>
