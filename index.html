@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>City of Knowledge - The Evolved Prototype</title>
-   
+    
     <!-- CSS Styles -->
     <style>
         :root {
@@ -20,7 +20,7 @@
             display: flex; flex-direction: column; align-items: center;
             background-color: #f0f2f5; margin: 0; padding: 20px; color: #333;
         }
-       
+        
         .game-wrapper { display: flex; flex-direction: column; align-items: center; gap: 15px; }
 
         #info-panel {
@@ -28,8 +28,9 @@
             padding: 10px; box-sizing: border-box; background: #fff; border-radius: 8px;
             box-shadow: 0 4px 10px rgba(0,0,0,0.1); display: flex; justify-content: space-between; align-items: center;
         }
-        #info-panel h2 { margin: 0; font-size: 1.2em; }
-        #info-panel h2 input { border: none; font-size: 1em; font-weight: bold; width: 150px; }
+        #info-panel h2 { margin: 0; font-size: 1.2em; display: flex; align-items: center; gap: 5px; }
+        #info-panel h2 input { border: none; font-size: 1em; font-weight: bold; width: 200px; padding: 5px; border-radius: 4px; }
+        #info-panel h2 input:focus { outline: 2px solid var(--house-color); }
         #info-panel p { margin: 0; font-size: 1.1em; }
         #info-panel p span { font-weight: bold; }
 
@@ -41,9 +42,9 @@
             width: calc(var(--grid-size) * var(--cell-size)); height: calc(var(--grid-size) * var(--cell-size));
             cursor: pointer;
         }
-       
+        
         #game-grid.move-mode { cursor: grabbing; }
-        #game-grid.destroy-mode { cursor: not-allowed; }
+        #game-grid.destroy-mode { cursor: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='32' height='32' viewport='0 0 100 100' style='fill:black;font-size:24px;'><text y='50%'>💣</text></svg>") 16 16, auto; }
         #game-grid.build-mode { cursor: crosshair; }
 
         .grid-cell {
@@ -54,33 +55,32 @@
         }
 
         .grid-cell:not(.buildable) { cursor: not-allowed; }
-        .grid-cell.buildable:hover { background-color: #ffffff50; }
+        .grid-cell.buildable:hover { background-color: rgba(255, 255, 255, 0.4); }
+        .grid-cell.road-preview { background-color: rgba(121, 85, 72, 0.5); }
 
         /* Terrain */
-        .mountain { background-color: var(--mountain-color); }
-        .sand { background-color: var(--sand-color); }
-        .sea { background-color: var(--sea-color); }
-        .grass { background-color: var(--grass-color); }
+        .mountain { background-color: var(--mountain-color); } .sand { background-color: var(--sand-color); }
+        .sea { background-color: var(--sea-color); } .grass { background-color: var(--grass-color); }
 
         /* Buildings */
-        .knowledge-house { background-color: var(--house-color); }
-        .factory { background-color: var(--factory-color); }
-        .park { background-color: var(--park-color); }
-        .road { color: #f0f0f0; }
+        .knowledge-house { background-color: var(--house-color); } .factory { background-color: var(--factory-color); }
+        .park { background-color: var(--park-color); } .road { color: #f0f0f0; }
         .road.road-lvl-1 { background-color: var(--road-lvl1-color); } .road.road-lvl-2 { background-color: var(--road-lvl2-color); }
         .road.road-lvl-3 { background-color: var(--road-lvl3-color); } .road.road-lvl-4 { background-color: var(--road-lvl4-color); }
         .road.road-lvl-5 { background-color: var(--road-lvl5-color); } .road.road-lvl-6 { background-color: var(--road-lvl6-color); }
-       
-        .invalid-building { opacity: 0.6; border: 2px dashed #D32F2F !important; }
+        
+        .invalid-building { opacity: 0.6; border: 2px dashed #D32F2F !important; animation: blink 1.5s infinite; }
+        @keyframes blink { 50% { border-color: transparent; } }
+        .moving-building-ghost { opacity: 0.7; background-color: #fff !important; border: 2px dashed #333; }
 
         #main-controls {
-            width: calc(var(--grid-size) * var(--cell-size));
-            padding: 10px; box-sizing: border-box; background: #fff; border-radius: 8px;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.1); display: flex; justify-content: space-between;
+            width: calc(var(--grid-size) * var(--cell-size)); padding: 10px; box-sizing: border-box; background: #fff;
+            border-radius: 8px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); display: flex; justify-content: space-between; gap: 20px;
         }
-        .control-group { display: flex; gap: 10px; flex-direction: column; }
+        .control-group { flex: 1; display: flex; gap: 10px; flex-direction: column; }
         .control-group h3 { margin: 0 0 5px 0; font-size: 1.1em; border-bottom: 1px solid #eee; padding-bottom: 5px; }
         .control-group .button-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 5px; }
+        #build-instructions { font-style: italic; color: #555; margin: 0; min-height: 20px; }
 
         .hidden { display: none !important; }
 
@@ -89,9 +89,8 @@
             background-color: rgba(0, 0, 0, 0.6); z-index: 100;
             display: flex; align-items: center; justify-content: center;
         }
-
         .modal {
-            background-color: #fff; padding: 25px; border-radius: 8px; min-width: 400px;
+            background-color: #fff; padding: 25px; border-radius: 8px; min-width: 450px;
             max-width: 90vw; box-shadow: 0 5px 20px rgba(0,0,0,0.3); border-top: 5px solid #03A9F4;
         }
         .modal h2 { margin-top: 0; }
@@ -106,7 +105,7 @@
         .form-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 10px; }
         #tasks-container { display: flex; flex-direction: column; gap: 5px; max-height: 150px; overflow-y: auto; padding: 5px; border: 1px solid #eee; }
 
-        #projects-list { max-height: 300px; overflow-y: auto; }
+        #projects-list, #recreation-projects-list { max-height: 300px; overflow-y: auto; }
         .project-item { border: 1px solid #ccc; padding: 10px; margin-bottom: 10px; border-radius: 4px; }
         .project-item h3 { margin: 0 0 10px 0; font-size: 1.1em; }
         .project-item ul { padding-left: 20px; margin: 0; }
@@ -115,21 +114,22 @@
         .project-item-recreation { border-left: 5px solid var(--park-color); }
         .project-item-knowledge { border-left: 5px solid var(--house-color); }
 
-        #kh-upgrade-custom-modal .input-group { display: flex; align-items: center; gap: 10px; }
+        #kh-upgrade-custom-modal .input-group { display: flex; align-items: center; gap: 10px; margin: 15px 0; }
+        #kh-upgrade-custom-modal .input-group input { flex: 1; }
     </style>
 </head>
 <body>
 
     <div class="game-wrapper">
         <div id="info-panel">
-            <h2><input type="text" id="city-name-input" value="Thành phố Kiến thức"></h2>
+            <h2><input type="text" id="city-name-input"></h2>
             <p>Dân số: <span id="population-display">0</span></p>
         </div>
 
         <div id="game-container">
             <div id="game-grid"></div>
         </div>
-       
+        
         <div id="main-controls">
             <div class="control-group">
                 <h3>Xây dựng & Quy hoạch</h3>
@@ -141,7 +141,6 @@
                     <button data-tool="MOVE">Di chuyển</button>
                     <button data-tool="DESTROY_ROAD">Phá đường</button>
                 </div>
-                <p id="build-instructions" class="hidden"></p>
             </div>
             <div class="control-group">
                 <h3>Quản lý</h3>
@@ -151,25 +150,24 @@
                     <input type="file" id="load-game-input" accept=".json" class="hidden">
                 </div>
             </div>
+             <div class="control-group">
+                <h3>Thông tin</h3>
+                 <p id="build-instructions"></p>
+            </div>
         </div>
     </div>
 
     <!-- Modals -->
     <div id="modal-backdrop" class="hidden">
-        <!-- Knowledge House Modal -->
         <div id="knowledge-house-modal" class="modal hidden">
-            <button class="close-btn">&times;</button>
-            <h2 id="kh-modal-title"></h2>
+            <button class="close-btn">&times;</button> <h2 id="kh-modal-title"></h2>
             <p>Cấp độ: <span id="kh-modal-level"></span> | Dân số: <span id="kh-modal-population"></span></p>
-            <button id="kh-upgrade-btn">Nâng cấp</button>
-            <button id="kh-destroy-btn" class="danger">Phá hủy</button>
+            <button id="kh-upgrade-btn">Nâng cấp</button> <button id="kh-destroy-btn" class="danger">Phá hủy</button>
         </div>
 
-        <!-- Custom KH Upgrade Modal -->
         <div id="kh-upgrade-custom-modal" class="modal hidden">
-            <button class="close-btn">&times;</button>
-            <h2>Nâng cấp Nhà Kiến thức</h2>
-            <p>Sử dụng chứng nhận để nâng cấp. Dùng nhiều hơn mức tối thiểu sẽ tăng dân số vĩnh viễn cho nhà.</p>
+            <button class="close-btn">&times;</button> <h2>Nâng cấp Nhà Kiến thức</h2>
+            <p>Dùng chứng nhận để nâng cấp. Dùng nhiều hơn mức tối thiểu sẽ tăng dân số vĩnh viễn cho nhà.</p>
             <div class="input-group">
                 <label for="kh-upgrade-amount">Số lượng chứng nhận:</label>
                 <input type="number" id="kh-upgrade-amount" min="1" value="1">
@@ -178,47 +176,36 @@
             <button id="kh-upgrade-confirm-btn">Xác nhận Nâng cấp</button>
         </div>
 
-        <!-- Factory Modal -->
         <div id="factory-modal" class="modal hidden">
-             <button class="close-btn">&times;</button>
-            <h2>Nhà máy</h2>
+            <button class="close-btn">&times;</button> <h2>Nhà máy</h2>
+            <p>Nơi tạo ra các dự án để nhận "Chứng nhận Hoàn thành".</p>
             <div id="projects-list"></div>
             <button id="create-knowledge-project-btn">+ Tạo Dự án Kiến thức</button>
         </div>
 
-        <!-- Park Modal -->
         <div id="park-modal" class="modal hidden">
-            <button class="close-btn">&times;</button>
-            <h2>Công viên</h2>
+            <button class="close-btn">&times;</button> <h2>Công viên</h2>
             <p>Lên kế hoạch cho các hoạt động giải trí và nỗ lực hoàn thành để tận hưởng thành quả.</p>
-             <div id="recreation-projects-list"></div>
+            <div id="recreation-projects-list"></div>
             <button id="create-recreation-project-btn">+ Lên kế hoạch Giải trí</button>
         </div>
-       
-        <!-- Create Project Modal -->
+        
         <div id="create-project-modal" class="modal hidden">
-             <button class="close-btn">&times;</button>
-            <h2 id="project-modal-title"></h2>
+            <button class="close-btn">&times;</button> <h2 id="project-modal-title"></h2>
             <form id="project-form">
-                <label for="project-name">Tên Dự án:</label>
-                <input type="text" id="project-name" required>
+                <input type="text" id="project-name" required placeholder="Tên dự án">
                 <div id="project-target-wrapper">
-                    <label>Liên kết đến Nhà Kiến thức để nâng cấp:</label>
                     <select id="project-target-building" required></select>
                 </div>
                 <label>Các Công việc cần làm:</label>
-                <div id="tasks-container">
-                    <input type="text" class="task-input" required>
-                </div>
+                <div id="tasks-container"><input type="text" class="task-input" required placeholder="Công việc đầu tiên"></div>
                 <button type="button" id="add-task-btn">+ Thêm Công việc</button>
                 <div class="form-actions"><button type="submit">Lưu Dự án</button></div>
             </form>
         </div>
 
-        <!-- Road Modal -->
         <div id="road-modal" class="modal hidden">
-            <button class="close-btn">&times;</button>
-            <h2>Nâng cấp Đoạn đường</h2>
+            <button class="close-btn">&times;</button> <h2>Nâng cấp Đoạn đường</h2>
             <div id="road-modal-info">
                 <p>Cấp độ hiện tại: <span id="road-modal-level"></span></p>
                 <p>Điều kiện nâng cấp lên cấp <span id="road-modal-next-level"></span>:</p>
@@ -231,115 +218,6 @@
     <!-- JavaScript Logic -->
     <script>
     document.addEventListener('DOMContentLoaded', () => {
-        // --- GAME STATE ---
-        let gameState = {
-            cityName: 'Thành phố Kiến thức',
-            inventory: { certificates: 0, recreation_certificates: 0 },
-            city: { buildings: [] },
-            projects: []
-        };
-
-        // --- CONSTANTS ---
-        const GRID_SIZE = 20;
-        const TERRAIN = { MOUNTAIN: [0, 1], SAND: [16, 17], SEA: [18, 19] };
-        const POPULATION_UNLOCKS = { FACTORY: 50, PARK: 100 };
-        const POP_BY_LEVEL = { 1: 10, 2: 25, 3: 50, 4: 100, 5: 200, 6: 400 };
-        const PARK_AOE_BONUS = 4;
-        const MOVE_COST = 1;
-
-        // --- DOM ELEMENTS ---
-        const grid = document.getElementById('game-grid');
-        const infoPanel = {
-            nameInput: document.getElementById('city-name-input'),
-            population: document.getElementById('population-display')
-        };
-        const controls = {
-            buildFactoryBtn: document.getElementById('build-factory-btn'),
-            buildParkBtn: document.getElementById('build-park-btn'),
-            instructions: document.getElementById('build-instructions'),
-            main: document.getElementById('main-controls'),
-            saveBtn: document.getElementById('save-game-btn'),
-            loadBtn: document.getElementById('load-game-btn'),
-            loadInput: document.getElementById('load-game-input')
-        };
-        const modalBackdrop = document.getElementById('modal-backdrop');
-        const allModals = document.querySelectorAll('.modal');
-        // ... (add other specific modal elements as needed)
-
-        // --- DYNAMIC VARIABLES ---
-        let currentTool = null; // e.g., { type: 'BUILD', building: 'ROAD' }, { type: 'MOVE' }
-        let activeBuilding = null;
-        let movingBuilding = null;
-        let isDrawing = false;
-       
-        // --- CORE FUNCTIONS: INITIALIZATION AND RENDERING ---
-        function initGrid() {
-            grid.innerHTML = '';
-            for (let y = 0; y < GRID_SIZE; y++) {
-                for (let x = 0; x < GRID_SIZE; x++) {
-                    const cell = document.createElement('div');
-                    cell.classList.add('grid-cell');
-                    cell.dataset.x = x; cell.dataset.y = y;
-                   
-                    // Apply terrain class
-                    let terrainClass = 'grass';
-                    if (TERRAIN.MOUNTAIN.includes(x)) terrainClass = 'mountain';
-                    else if (TERRAIN.SAND.includes(x)) terrainClass = 'sand';
-                    else if (TERRAIN.SEA.includes(x)) terrainClass = 'sea';
-                    else cell.classList.add('buildable');
-                    cell.classList.add(terrainClass);
-
-                    grid.appendChild(cell);
-                }
-            }
-        }
-
-        function render() {
-            // Clear old buildings
-            grid.querySelectorAll('.knowledge-house, .factory, .park, .road').forEach(el => {
-                el.className = el.className.replace(/(knowledge-house|factory|park|road|road-lvl-\d|invalid-building)/g, '').trim();
-                el.textContent = '';
-            });
-
-            // Draw new buildings
-            gameState.city.buildings.forEach(b => {
-                const cell = getCell(b.position.x, b.position.y);
-                if (!cell) return;
-               
-                const typeClass = b.type.toLowerCase().replace('_', '-');
-                cell.classList.add(typeClass);
-                if (b.level) {
-                    cell.classList.add(`road-lvl-${b.level}`);
-                    cell.textContent = `L${b.level}`;
-                }
-                if (b.isInvalid) {
-                    cell.classList.add('invalid-building');
-                }
-            });
-           
-            updateInfoPanel();
-            updateBuildMenu();
-        }
-
-        function updateInfoPanel() {
-            infoPanel.nameInput.value = gameState.cityName;
-            const population = calculateTotalPopulation();
-            infoPanel.population.textContent = population;
-            // You can add a next goal display here, e.g., /50 or /100
-        }
-
-        function updateBuildMenu() {
-            const population = calculateTotalPopulation();
-            controls.buildFactoryBtn.disabled = population < POPULATION_UNLOCKS.FACTORY;
-            controls.buildParkBtn.disabled = population < POPULATION_UNLOCKS.PARK;
-        }
-
-        // ... (The rest of the JS logic will go here, refactored and organized)
-
-        // Placeholder for the massive JS logic
-        // This is where all event handlers, calculations, modals, and tool logic will live.
-        // I will write this part now based on our agreed-upon features.
-      document.addEventListener('DOMContentLoaded', () => {
         let gameState = {
             cityName: 'Thành phố Kiến thức',
             inventory: { certificates: 0, recreation_certificates: 0 },
@@ -363,9 +241,17 @@
         };
         const modalBackdrop = document.getElementById('modal-backdrop');
         const allModals = document.querySelectorAll('.modal');
-       
+        const modals = { // Direct access to modal elements
+            kh: document.getElementById('knowledge-house-modal'),
+            khUpgrade: document.getElementById('kh-upgrade-custom-modal'),
+            factory: document.getElementById('factory-modal'),
+            park: document.getElementById('park-modal'),
+            project: document.getElementById('create-project-modal'),
+            road: document.getElementById('road-modal')
+        };
+        
         let currentTool = null; let activeBuilding = null; let movingBuilding = null; let isDrawing = false;
-       
+        
         function initGrid() {
             grid.innerHTML = '';
             for (let y = 0; y < GRID_SIZE; y++) {
@@ -388,10 +274,9 @@
             grid.querySelectorAll('.knowledge-house, .factory, .park, .road, .invalid-building').forEach(el => {
                 const classList = Array.from(el.classList);
                 const terrain = classList.find(c => ['grass', 'mountain', 'sand', 'sea'].includes(c));
-                el.className = `grid-cell buildable ${terrain || ''}`;
+                el.className = `grid-cell ${!terrain ? 'buildable' : ''} ${terrain || ''}`.trim();
                 el.textContent = '';
             });
-
             gameState.city.buildings.forEach(b => {
                 if (!b.position) return;
                 const cell = getCell(b.position.x, b.position.y);
@@ -409,17 +294,15 @@
 
         function updateInfoPanel() {
             infoPanel.nameInput.value = gameState.cityName;
-            infoPanel.population.textContent = calculateTotalPopulation();
+            const population = calculateTotalPopulation();
+            const nextUnlock = population < POPULATION_UNLOCKS.FACTORY ? POPULATION_UNLOCKS.FACTORY : (population < POPULATION_UNLOCKS.PARK ? POPULATION_UNLOCKS.PARK : 'Max');
+            infoPanel.population.textContent = `${population} (Mở khóa tiếp: ${nextUnlock})`;
         }
 
         function updateBuildMenu() {
             const pop = calculateTotalPopulation();
-            controls.buildFactoryBtn.disabled = pop < POPULATION_UNLOCKS.FACTORY;
+            controls.buildFactoryBtn.disabled = pop < POPULATION_UNLOCKS.FACTORY || gameState.city.buildings.some(b => b.type === 'FACTORY');
             controls.buildParkBtn.disabled = pop < POPULATION_UNLOCKS.PARK;
-            // Disable factory button if one already exists
-            if (gameState.city.buildings.some(b => b.type === 'FACTORY')) {
-                controls.buildFactoryBtn.disabled = true;
-            }
         }
 
         function calculateTotalPopulation() {
@@ -429,31 +312,29 @@
                 if (b.type === 'KNOWLEDGE_HOUSE') {
                     totalPop += POP_BY_LEVEL[b.level] || 0;
                     totalPop += b.bonusPop || 0;
-                    const isNearPark = parks.some(p => Math.abs(p.position.x - b.position.x) <= 1 && Math.abs(p.position.y - b.position.y) <= 1);
+                    const isNearPark = parks.some(p => Math.abs(p.position.x - b.position.x) <= 1 && Math.abs(p.position.y - b.position.y) <= 1 && p !== b);
                     if (isNearPark) totalPop += PARK_AOE_BONUS;
                 }
             });
             return totalPop;
         }
 
-        function isPositionValid(x, y, allowRoads = false) {
+        function isPositionValid(x, y) {
             if (x === undefined || y === undefined) return false;
-            if (TERRAIN.MOUNTAIN.includes(x) || TERRAIN.SAND.includes(x) || TERRAIN.SEA.includes(x)) return false;
-            const building = getBuildingAt(x, y);
-            return !building || (allowRoads && building.type === 'ROAD');
+            return !(TERRAIN.MOUNTAIN.includes(x) || TERRAIN.SAND.includes(x) || TERRAIN.SEA.includes(x));
         }
 
         function setTool(type, detail = null) {
             currentTool = { type, detail };
-            movingBuilding = null; // Reset moving building
-            grid.className = 'game-grid'; // Reset cursor
+            movingBuilding = null;
+            grid.className = 'game-grid';
             controls.instructions.classList.remove('hidden');
             let text = '';
             if (type === 'BUILD') {
                 text = detail === 'ROAD' ? 'Kéo thả để vẽ đường.' : `Chọn vị trí để xây ${detail.replace('_', ' ')}.`;
                 grid.classList.add('build-mode');
             } else if (type === 'MOVE') {
-                text = 'Chọn một tòa nhà để di chuyển (chi phí: 1 cert).';
+                text = 'Chọn tòa nhà để di chuyển (phí: 1 cert).';
                 grid.classList.add('move-mode');
             } else if (type === 'DESTROY_ROAD') {
                 text = 'Nhấp hoặc kéo trên đường để phá.';
@@ -465,31 +346,36 @@
         function resetTool() {
             currentTool = null; isDrawing = false; movingBuilding = null;
             grid.className = 'game-grid';
-            controls.instructions.classList.add('hidden');
+            controls.instructions.textContent = '';
         }
-       
-        // Event Listeners
+        
         controls.main.addEventListener('click', e => {
             if (e.target.tagName !== 'BUTTON') return;
             const type = e.target.dataset.type;
             const tool = e.target.dataset.tool;
+            if (e.target.disabled) return;
             if (type) setTool('BUILD', type);
             if (tool) setTool(tool);
         });
 
         grid.addEventListener('mousedown', e => {
             if (!currentTool || !e.target.classList.contains('grid-cell')) return;
-            isDrawing = true;
-            handleGridInteraction(e.target, 'start');
+            isDrawing = true; handleGridInteraction(e.target, 'start');
         });
         grid.addEventListener('mousemove', e => {
             if (!isDrawing || !e.target.classList.contains('grid-cell')) return;
             handleGridInteraction(e.target, 'drag');
         });
-        window.addEventListener('mouseup', e => {
+        window.addEventListener('mouseup', () => {
             if (!isDrawing) return;
             isDrawing = false;
-            handleGridInteraction(e.target, 'end');
+            if (currentTool?.type === 'BUILD' && currentTool?.detail === 'ROAD') {
+                document.querySelectorAll('.road-preview').forEach(c => {
+                    const nx = parseInt(c.dataset.x), ny = parseInt(c.dataset.y);
+                    if (!getBuildingAt(nx, ny)) placeBuilding(nx, ny, 'ROAD');
+                });
+                resetTool(); render();
+            } else if (currentTool?.type === 'DESTROY_ROAD') { resetTool(); render(); }
         });
         grid.addEventListener('click', e => {
             if (currentTool || !e.target.classList.contains('grid-cell')) return;
@@ -500,44 +386,41 @@
 
         function handleGridInteraction(cell, eventType) {
             const x = parseInt(cell.dataset.x), y = parseInt(cell.dataset.y);
-            const toolType = currentTool.type;
-            const toolDetail = currentTool.detail;
+            if (!currentTool) return;
+            const { type: toolType, detail: toolDetail } = currentTool;
 
             if (toolType === 'BUILD') {
                 if (toolDetail === 'ROAD') {
-                    if (isPositionValid(x, y, true)) cell.classList.add('road-preview');
-                    if (eventType === 'end') {
-                        document.querySelectorAll('.road-preview').forEach(c => {
-                            const nx = parseInt(c.dataset.x), ny = parseInt(c.dataset.y);
-                            const existing = getBuildingAt(nx, ny);
-                            if (existing && existing.type === 'ROAD') return;
-                            placeBuilding(nx, ny, 'ROAD');
-                        });
-                        resetTool(); render();
-                    }
+                    if (isPositionValid(x, y) && !getBuildingAt(x, y)) cell.classList.add('road-preview');
                 } else if (eventType === 'start') {
-                     if (!isPositionValid(x, y)) { alert('Vị trí không hợp lệ!'); return; }
-                     if (!getAdjacentBuildings(x, y).some(b => b.type === 'ROAD')) { alert('Phải xây cạnh đường!'); return; }
-                     placeBuilding(x, y, toolDetail);
-                     resetTool(); render();
+                    if (!isPositionValid(x, y) || getBuildingAt(x, y)) { alert('Vị trí không hợp lệ!'); return; }
+                    if (toolDetail !== 'ROAD' && !getAdjacentBuildings(x, y).some(b => b.type === 'ROAD')) { alert('Phải xây cạnh đường!'); return; }
+                    placeBuilding(x, y, toolDetail); resetTool(); render();
                 }
             } else if (toolType === 'DESTROY_ROAD') {
-                 const b = getBuildingAt(x, y);
-                 if (b && b.type === 'ROAD') gameState.city.buildings = gameState.city.buildings.filter(ob => ob.id !== b.id);
-                 if (eventType === 'end') { resetTool(); }
-                 render();
+                const b = getBuildingAt(x, y);
+                if (b && b.type === 'ROAD') {
+                    const adj = getAdjacentBuildings(x,y);
+                    const connectedBuildings = adj.filter(building => building.type !== 'ROAD');
+                    if(connectedBuildings.length > 0) {
+                        alert('Không thể xóa đường đang kết nối với công trình!');
+                        return;
+                    }
+                    gameState.city.buildings = gameState.city.buildings.filter(ob => ob.id !== b.id);
+                    render();
+                }
             } else if (toolType === 'MOVE') {
                 if (eventType === 'start') {
-                    if (movingBuilding) { // Place building
-                        if (!isPositionValid(x, y)) { alert('Không thể di chuyển đến vị trí này!'); return; }
+                    if (movingBuilding) {
+                        if (getBuildingAt(x, y)) { alert('Vị trí đã có công trình!'); return; }
+                        if (!isPositionValid(x, y)) { alert('Không thể di chuyển đến vùng địa hình này!'); return; }
                         if (!getAdjacentBuildings(x, y).some(b => b.type === 'ROAD')) { alert('Phải đặt cạnh đường!'); return; }
                         if (gameState.inventory.certificates < MOVE_COST) { alert(`Không đủ chứng nhận! Cần ${MOVE_COST}.`); return; }
-                       
+                        
                         gameState.inventory.certificates -= MOVE_COST;
-                        movingBuilding.position = { x, y };
-                        movingBuilding.isInvalid = false;
+                        movingBuilding.position = { x, y }; movingBuilding.isInvalid = false;
                         movingBuilding = null; resetTool(); render();
-                    } else { // Pick up building
+                    } else {
                         const b = getBuildingAt(x, y);
                         if (b && b.type !== 'ROAD') { movingBuilding = b; controls.instructions.textContent = 'Chọn vị trí mới để đặt xuống.'; }
                     }
@@ -549,108 +432,100 @@
             let name = type;
             if (type === 'KNOWLEDGE_HOUSE') name = prompt('Đặt tên cho kiến thức:');
             else if (type === 'PARK') name = 'Công viên';
-            if (!name) return;
-
-            gameState.city.buildings.push({
-                id: `b_${Date.now()}`, type, name,
-                level: (type === 'ROAD' || type === 'PARK') ? 1 : 1, // Parks can have levels later
-                position: { x, y },
-                bonusPop: 0
-            });
+            if (!name && type === 'KNOWLEDGE_HOUSE') return;
+            gameState.city.buildings.push({ id: `b_${Date.now()}`, type, name, level: 1, position: { x, y }, bonusPop: 0 });
         }
-       
-        // ... (Modal logic, save/load, helpers will go here)
-        // This is a continuation of the same script block.
+        
+        infoPanel.nameInput.addEventListener('change', e => gameState.cityName = e.target.value);
 
-        // --- SAVE/LOAD ---
         controls.saveBtn.addEventListener('click', () => {
             const dataStr = JSON.stringify(gameState, null, 2);
             const blob = new Blob([dataStr], { type: "application/json" });
-            const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
-            a.href = url; a.download = 'city_of_knowledge_save.json';
-            a.click(); URL.revokeObjectURL(url); a.remove();
+            a.href = URL.createObjectURL(blob); a.download = 'city_of_knowledge_save.json';
+            a.click(); a.remove();
         });
         controls.loadBtn.addEventListener('click', () => controls.loadInput.click());
-        controls.loadInput.addEventListener('change', (e) => {
-            const file = e.target.files[0];
-            if (!file) return;
+        controls.loadInput.addEventListener('change', e => {
+            const file = e.target.files[0]; if (!file) return;
             const reader = new FileReader();
-            reader.onload = (re) => {
+            reader.onload = re => {
                 try {
                     const loadedState = JSON.parse(re.target.result);
                     if (!loadedState.city) throw new Error('Invalid save file');
-                    // COMPATIBILITY CHECK
                     loadedState.city.buildings.forEach(b => {
-                        if (b.position && !isPositionValid(b.position.x, b.position.y, true)) {
-                            b.isInvalid = true;
-                        } else {
-                            b.isInvalid = false;
-                        }
+                        b.isInvalid = b.position && !isPositionValid(b.position.x, b.position.y);
                     });
-                    gameState = loadedState;
-                    render();
-                    alert('Tải game thành công!');
+                    gameState = loadedState; render();
+                    alert('Tải game thành công! Các công trình ở vị trí không hợp lệ sẽ được làm mờ.');
                 } catch (err) { alert('Lỗi: ' + err.message); }
             };
-            reader.readAsText(file);
-            e.target.value = null;
+            reader.readAsText(file); e.target.value = null;
         });
 
-        // --- HELPERS ---
         function getCell(x, y) { return document.querySelector(`.grid-cell[data-x='${x}'][data-y='${y}']`); }
         function getBuildingAt(x, y) { return gameState.city.buildings.find(b => b.position && b.position.x === x && b.position.y === y); }
         function getAdjacentBuildings(x, y) {
-            const adj = [];
-            [[-1, 0], [1, 0], [0, -1], [0, 1]].forEach(([dx, dy]) => {
-                const b = getBuildingAt(x + dx, y + dy);
-                if (b) adj.push(b);
-            });
+            const adj = []; [[-1, 0], [1, 0], [0, -1], [0, 1]].forEach(([dx, dy]) => { const b = getBuildingAt(x + dx, y + dy); if (b) adj.push(b); });
             return adj;
         }
 
-        // --- MODAL LOGIC ---
         function openBuildingModal(building) {
             activeBuilding = building;
-            if (building.isInvalid) {
-                alert('Vị trí không hợp lệ! Vui lòng di chuyển công trình này.');
-                movingBuilding = building;
-                setTool('MOVE');
-                return;
-            }
+            if (building.isInvalid) { alert('Vị trí không hợp lệ! Vui lòng di chuyển công trình này.'); setTool('MOVE'); movingBuilding = building; return; }
             modalBackdrop.classList.remove('hidden');
-            // Populate and show the correct modal based on building.type
-            // This part can get very long, similar to the previous version
-            // For brevity, the full implementation of every modal is omitted,
-            // but the structure is here.
-            if(building.type === 'KNOWLEDGE_HOUSE') {
-                // Show KH modal
-                document.getElementById('knowledge-house-modal').classList.remove('hidden');
-            } else if(building.type === 'FACTORY') {
-                // Show Factory modal
-                document.getElementById('factory-modal').classList.remove('hidden');
-            } else if(building.type === 'PARK') {
-                // Show Park modal
-                 document.getElementById('park-modal').classList.remove('hidden');
-            } else if(building.type === 'ROAD') {
-                // Show Road modal
-                 document.getElementById('road-modal').classList.remove('hidden');
+            if (building.type === 'KNOWLEDGE_HOUSE') {
+                modals.kh.classList.remove('hidden');
+                modals.kh.querySelector('#kh-modal-title').textContent = building.name;
+                modals.kh.querySelector('#kh-modal-level').textContent = building.level;
+                 modals.kh.querySelector('#kh-modal-population').textContent = POP_BY_LEVEL[building.level] + (building.bonusPop || 0);
+            } else if (building.type === 'FACTORY') {
+                modals.factory.classList.remove('hidden');
+                // render project list for factory
+            } else if (building.type === 'PARK') {
+                modals.park.classList.remove('hidden');
+                // render recreation project list for park
+            } else if (building.type === 'ROAD') {
+                modals.road.classList.remove('hidden');
+                // update road modal info
             }
         }
-       
+        
         function closeModal() {
             modalBackdrop.classList.add('hidden');
-            allModals.forEach(m => m.classList.add('hidden'));
-            activeBuilding = null;
+            allModals.forEach(m => m.classList.add('hidden')); activeBuilding = null;
         }
 
-        modalBackdrop.addEventListener('click', e => {
-            if (e.target === modalBackdrop || e.target.classList.contains('close-btn')) {
-                closeModal();
-            }
+        modalBackdrop.addEventListener('click', e => { if (e.target === modalBackdrop || e.target.classList.contains('close-btn')) closeModal(); });
+        
+        // --- Add specific modal interaction logic here (omitted for initial brevity) ---
+        // Example: KH Upgrade Button
+        modals.kh.querySelector('#kh-upgrade-btn').addEventListener('click', () => {
+            closeModal();
+            modals.khUpgrade.classList.remove('hidden');
+            // Populate custom upgrade modal
+            const minCert = 1; // This can be dynamic later
+            modals.khUpgrade.querySelector('#kh-upgrade-min').textContent = minCert;
+            modals.khUpgrade.querySelector('#kh-upgrade-amount').min = minCert;
+            modals.khUpgrade.querySelector('#kh-upgrade-amount').value = minCert;
         });
-       
-        // --- FINAL INITIALIZATION ---
+
+        modals.khUpgrade.querySelector('#kh-upgrade-confirm-btn').addEventListener('click', () => {
+            const amount = parseInt(modals.khUpgrade.querySelector('#kh-upgrade-amount').value);
+            const min = parseInt(modals.khUpgrade.querySelector('#kh-upgrade-min').textContent);
+            if (gameState.inventory.certificates < amount) { alert('Không đủ chứng nhận!'); return; }
+            
+            gameState.inventory.certificates -= amount;
+            activeBuilding.level++;
+            const bonus = amount - min;
+            if (bonus > 0) activeBuilding.bonusPop = (activeBuilding.bonusPop || 0) + bonus;
+
+            alert(`Nâng cấp thành công lên cấp ${activeBuilding.level}!`);
+            closeModal(); render();
+        });
+
+
+        // Initialize
         initGrid();
         render();
     });
